@@ -64,32 +64,30 @@ Ce projet est une application Web complète permettant de gérer les personnels 
 
 ## Architecture générale du projet
 
-    **Backend : Django + Django Rest Framework**
-    ```bat
-        staf_manag/
-        ├── accounts/   # Authentification, JWT, profils, notifications
-        ├── personnel/  # CRUD personnel, import Excel
-        ├── conges/     # Gestion congés, règles, demandes
-        ├── meias/      # uploads (photos profils, Excel,...)
-        ├── staf_manag/ # settings, urls, config principale
-        └── requierements.text
-    ```
+### Backend : Django + Django Rest Framework
 
-    **Frontend : React.js**
-    ```bat
-        staf_manag-react/
-        └── src/
-        ├── components/
-        ├── layouts/
-        ├── pages/
-        ├── services/
-        ├── api/
-        ├── contexts/
-        ├── utils/
-        ├── i18n/
-        ├── App.tsx
-        └── main.tsx
-    ```
+    staf_manag/
+    ├── accounts/   # Authentification, JWT, profils notifications
+    ├── personnel/  # CRUD personnel, import Excel
+    ├── conges/     # Gestion congés, règles, demandes
+    ├── meias/      # uploads (photos profils, Excel,...)
+    ├── staf_manag/ # settings, urls, config principale
+    └── requierements.text
+
+#### Frontend : React.js
+
+    staf_manag-react/
+    └── src/
+    ├── components/
+    ├── layouts/
+    ├── pages/
+    ├── services/
+    ├── api/
+    ├── contexts/
+    ├── utils/
+    ├── i18n/
+    ├── App.tsx
+    └── main.tsx
 
 ## Technologies utilsées & installations
 
@@ -121,78 +119,69 @@ Ce projet est une application Web complète permettant de gérer les personnels 
 
 ### Installation & Exécution
 
-    **Backend : Django + PostgreSQL**
+#### Backend : Django + PostgreSQL
 
-    ```bat
-        python -m venv env # création d'un environnement virtuel
+    python -m venv env # création d'un environnement virtuel
 
-        django-admin-startproject staf-manag # création du projet Django
+    django-admin-startproject staf-manag # création du projet Django
 
-        python manage.py startapp app_name # création d'une application nommée app_name
+    python manage.py startapp app_name # création d'une application nommée app_name
 
-        # Installer Django REST Framework et JWT
-        pip install djangorestframework djangorestframework-simplejwt psycopg2
+    # Installer Django REST Framework et JWT
+    pip install djangorestframework djangorestframework-simplejwt psycopg2
 
-        pip install -r requirements.txt # installer les dépendances
+    pip install -r requirements.txt # installer les dépendances
 
-        python manage.py migrate # aplliquer les migrations
+    python manage.py migrate # aplliquer les migrations
 
-        python manage.py runerveur
-    ```
+    python manage.py runerveur
 
-    **Frontend : React + TailwindCSS**
-    ```bat
-        npm install // installer les dépendances
+#### Frontend : React + TailwindCSS
 
-        // création de l'application React
-        npm create vite@latest staff-manag-react -- --template react
+    npm install // installer les dépendances
 
-        npm install tailwindcss @tailwindcss/vite // Installation du Tailwind CSS pour le css
+    // création de l'application React
+    npm create vite@latest staff-manag-react -- --template react
 
-        npm run dev // lancer l'application
-    ```
+    npm install tailwindcss @tailwindcss/vite // Installation du Tailwind CSS pour le css
+
+    npm run dev // lancer l'application
 
 ## API Endpoints principaux
 
 ### Authentification
 
-    ```bat
-        Méthode          Endpoint                Description
+    Méthode          Endpoint                Description
 
-        POST          /api/auth/login/          Connexion JWT
+    POST          /api/auth/login/          Connexion JWT
 
-        POST          /api/auth/login/refresh/          Refresh token
+    POST          /api/auth/login/refresh/          Refresh token
 
-        PATCH          /api/auth/change-password/          Modifier mot de passe
+    PATCH          /api/auth/change-password/          Modifier mot de passe
 
-        POST          /api/auth/request-reset-code/          OTP code de vérification 2F
+    POST          /api/auth/request-reset-code/          OTP code de vérification 2F
 
-        POST          /api/auth/reset-pasword/          Réinitialiser mot de passe
-    ```
+    POST          /api/auth/reset-pasword/          Réinitialiser mot de passe
 
 ### Personnel
 
-    ```bat
-        Méthode                     Endpoint                    Description
+    Méthode                     Endpoint                    Description
 
-        GET/POST                /api/personnels/                Afficher/créer personnels
+    GET/POST                /api/personnels/                Afficher/créer personnels
 
-        PUT/PATCH/DELETE        /api/personnels/<slug>/          Manipuler personnels
+    PUT/PATCH/DELETE        /api/personnels/<slug>/          Manipuler personnels
 
-        POST                    /api/personnels/import/                Importer personnels
-    ```
+    POST                    /api/personnels/import/                Importer personnels
 
 ### Congés
 
-    ```bat
-        Endpoint                                Description
+    Endpoint                                Description
 
-        /api/conges/                            CRUD congés
+    /api/conges/                            CRUD congés
 
-        /api/conges/demande-conge/              Demandes des congés
+    /api/conges/demande-conge/              Demandes des congés
 
-        /api/conges/regle-conge/                Règles d'attribution des congés
-    ```
+    /api/conges/regle-conge/                Règles d'attribution des congés
 
 ## Interfaces utilisateur
 

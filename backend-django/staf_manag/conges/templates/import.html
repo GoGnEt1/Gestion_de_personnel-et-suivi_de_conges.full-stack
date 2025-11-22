@@ -1,0 +1,25 @@
+<!-- templates/import.html -->
+<form method="post" enctype="multipart/form-data">
+  <!-- L'attribut enctype="multipart/form-data" est obligatoire pour l’envoi 
+         de fichiers (sinon, Django ne recevra pas le fichier) -->
+  {% csrf_token %}
+  <!-- Cross-Site Request Forgery, obligatoire dans tous les 
+       formulaires POST en Django -->
+  {{ form.as_p }}
+  <!-- <label for="last_n_rows">Nombre de lignes à importer (depuis la fin) :</label> -->
+  <input
+    type="number"
+    name="last_n_rows"
+    min="1"
+    title="Nombre de lignes à importer"
+    placeholder="Entrez le nombre de lignes à importer (depuis la fin)"
+    style="width: 55%; height: 30px; padding: 20px 10px"
+  />
+  <br />
+  <br />
+  <button type="submit">Importer</button>
+</form>
+
+{% for message in messages %}
+<div class="alert">{{ message }}</div>
+{% endfor %}

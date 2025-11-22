@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="fr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>{% block title %}{% endblock %}</title>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        background-color: #c0ccdd;
+        padding: 0;
+        margin: 0;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        min-height: 100vh;
+      }
+      table {
+        vertical-align: center;
+        border: none;
+      }
+      .td1 {
+        padding: 20px 0;
+        vertical-align: center;
+      }
+      .td1 table {
+        width: 600px;
+        margin: 0 auto;
+        /* border-collapse: collapse; */
+        background-color: #ffffff;
+        border-radius: 6px;
+        overflow: hidden;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+      }
+      .ap_name {
+        vertical-align: center;
+        background-color: #eaf0f6;
+        padding: 20px;
+        text-align: center;
+      }
+      .ap_name h2 {
+        color: #333;
+        font-size: 20px;
+        font-weight: bold;
+        margin: 0;
+        text-transform: uppercase;
+      }
+      .content {
+        padding: 30px;
+        color: #333;
+      }
+      .content .p1 {
+        margin: 0 0 15px 0;
+        font-size: 16px;
+      }
+      .content .p1 {
+        font-size: 15px;
+      }
+      .content .p3 {
+        font-size: 28px;
+        font-weight: bold;
+        color: #2c5282;
+        text-align: center;
+        margin: 30px 0;
+      }
+      .content .lien {
+        text-align: center;
+        margin: 25px 0;
+      }
+      .content .lien a {
+        display: inline-block;
+        padding: 12px 20px;
+        background-color: #2c5282;
+        color: #fff;
+        text-decoration: none;
+        border-radius: 5px;
+        font-size: 15px;
+      }
+      .content .lien a:hover {
+        background-color: #1a365d;
+      }
+      .footer {
+        background-color: #eaf0f6;
+        padding: 15px;
+        color: #555;
+        text-align: center;
+        font-size: 12px;
+        vertical-align: center;
+      }
+      .content .avertissement {
+        margin: 30px 0 0 0;
+        font-size: 13px;
+        color: #777;
+      }
+    </style>
+  </head>
+  <body>
+    <table role="presentation" cellpadding="0" cellspacing="0" width="100%">
+      <tr>
+        <td class="td1">
+          <table
+            role="presentation"
+            cellpadding="0"
+            cellspacing="0"
+            width="600"
+          >
+            <tr>
+              <td class="ap_name">
+                <h2>staff management</h2>
+              </td>
+            </tr>
+            <tr>
+              <td class="content">
+                <p class="p1">
+                  Cher (e)
+                  <strong>
+                    {{user.personnel.nom}} {{user.personnel.prenoms}}</strong
+                  >,
+                </p>
+                <p class="p1 p2">{% block content %}{% endblock %}</p>
+
+                <p class="p3">{% block code %}{% endblock %}</p>
+
+                <p class="p1 p2">
+                  Accédez directement à votre espace via ce lien:
+                </p>
+                <p class="lien">{% block lien %}{% endblock %}</p>
+                <p class="avertissement">
+                  {% block avertissement %}{% endblock %}
+                </p>
+              </td>
+            </tr>
+
+            <!-- Footer -->
+            <tr>
+              <td class="footer">
+                &copy; {{year}} STAFF MANAGEMENT. Tous droits reservés.
+              </td>
+            </tr>
+          </table>
+        </td>
+      </tr>
+    </table>
+  </body>
+</html>

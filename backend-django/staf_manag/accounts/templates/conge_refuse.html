@@ -1,0 +1,40 @@
+{% extends 'base.html' %}
+
+<!-- title -->
+{% block title %}Congé refusé{% endblock %}
+
+<!-- content -->
+{% block content %}
+<!--  -->
+Désolez, votre demande de congé a été <strong>refusée</strong>.<br />
+<strong>Date de début :</strong> {{date_debut}} <br />
+<!-- date retour = conge.periode.split(" - ")[1] -->
+<strong>Date de retour :</strong> {{date_retour}} <br />
+<strong>Motif de refus :</strong> {{motif}}
+
+<!--  -->
+{% endblock %}
+
+<!-- code -->
+{% block code %}
+<!--  -->
+<!--  -->
+{% endblock %}
+
+<!-- lien de verification -->
+{% block lien %}
+<a
+  href="{{lien_espace}}"
+  target="_blank"
+  rel="noopener noreferrer"
+  class="btn btn-secondary"
+  >Mon espace</a
+>
+{% endblock %}
+
+<!-- avertissement -->
+{% block avertissement %}
+<!--  -->
+Nous vous remercions de votre confiance.
+<!--  -->
+{% endblock %}

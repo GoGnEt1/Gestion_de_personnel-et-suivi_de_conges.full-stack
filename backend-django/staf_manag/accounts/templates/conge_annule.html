@@ -1,0 +1,42 @@
+{% extends 'base.html' %}
+
+<!-- title -->
+{% block title %}Congé annulé{% endblock %}
+
+<!-- content -->
+{% block content %}
+<!--  -->
+Le personnel
+<strong>{{conge.personnel.prenoms}} {{conge.personnel.nom}}</strong> a annulé sa
+demande de congés.<br />
+<strong>Date de début :</strong> {{date_debut}} <br />
+<!-- date retour = conge.periode.split(" - ")[1] -->
+<strong>Date de retour :</strong> {{date_retour}} <br />
+<strong>Motif :</strong> {{conge.motif}}
+
+<!--  -->
+{% endblock %}
+
+<!-- code -->
+{% block code %}
+<!--  -->
+<!--  -->
+{% endblock %}
+
+<!-- lien de verification -->
+{% block lien %}
+<a
+  href="{{lien_espace}}"
+  target="_blank"
+  rel="noopener noreferrer"
+  class="btn btn-secondary"
+  >Espace administrateur</a
+>
+{% endblock %}
+
+<!-- avertissement -->
+{% block avertissement %}
+<!--  -->
+Nous vous remercions de votre confiance.
+<!--  -->
+{% endblock %}

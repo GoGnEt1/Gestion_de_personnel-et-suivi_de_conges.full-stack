@@ -1,0 +1,29 @@
+body {
+  height: 100vh;
+  /* background: url("/src/assets/hero-bg.jpg") no-repeat center / cover; */
+
+  width: 100%;
+}
+/* .navbar {
+  background: url("/src/assets/fsg2.jpg") no-repeat center / cover;
+} */
+.navbar nav,
+.headerH {
+  background: rgba(39, 85, 100, 0.9);
+  -webkit-backdrop-filter: blur(10px);
+  backdrop-filter: blur(10px);
+}
+body.admin-dashboard,
+body.user-dashboard,
+body.personnel-list,
+body.import {
+  background-color: #f3f4f6;
+}
+.register,
+.login {
+  background: url("/src/assets/signup-img.jpg") no-repeat center / cover;
+}
+
+/* .login {
+  background: url("/src/assets/login.avif") no-repeat center / cover;
+} */

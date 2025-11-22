@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Document</title>
+  </head>
+  <body
+    style="
+      font-family: Arial, sans-serif;
+      background-color: #f3f6fa;
+      margin: 0;
+      padding: 0;
+    "
+  >
+    <table
+      role="presentation"
+      cellspacing="0"
+      cellpadding="0"
+      border="0"
+      align="center"
+      width="100%"
+    >
+      <tr>
+        <td align="center" style="padding: 20px 0">
+          <table
+            role="presentation"
+            cellspacing="0"
+            cellpadding="0"
+            border="0"
+            width="600"
+            style="
+              background-color: #ffffff;
+              border-radius: 6px;
+              overflow: hidden;
+              box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            "
+          >
+            <!-- Header -->
+            <tr>
+              <td
+                align="center"
+                style="background-color: #eaf0f6; padding: 20px"
+              >
+                <h2
+                  style="
+                    margin: 0;
+                    font-size: 20px;
+                    font-weight: bold;
+                    color: #333;
+                  "
+                >
+                  [Nom de ton application]
+                </h2>
+              </td>
+            </tr>
+
+            <!-- Message -->
+            <tr>
+              <td style="padding: 30px; color: #333">
+                <p style="margin: 0 0 15px 0; font-size: 16px">
+                  Cher(e) <strong>{{ nom }} {{ prenoms }}</strong>,
+                </p>
+                <p style="margin: 0 0 15px 0; font-size: 15px">
+                  Voici votre code pour
+                  <strong>l’authentification à deux facteurs</strong> :
+                </p>
+
+                <!-- Code OTP -->
+                <p
+                  style="
+                    font-size: 28px;
+                    font-weight: bold;
+                    color: #2c5282;
+                    text-align: center;
+                    margin: 30px 0;
+                  "
+                >
+                  {{ code }}
+                </p>
+
+                <!-- Lien vers interface -->
+                <p style="font-size: 15px; margin: 0 0 15px 0">
+                  Accédez directement à votre espace via ce lien :
+                </p>
+                <p style="text-align: center; margin: 25px 0">
+                  <a
+                    href="{{ lien_interface }}"
+                    target="_blank"
+                    style="
+                      background-color: #2c5282;
+                      color: #ffffff;
+                      text-decoration: none;
+                      padding: 12px 20px;
+                      border-radius: 4px;
+                      font-size: 15px;
+                    "
+                  >
+                    Accéder à mon espace
+                  </a>
+                </p>
+
+                <!-- Avertissement -->
+                <p style="margin: 30px 0 0 0; font-size: 13px; color: #777">
+                  Pour protéger votre compte, ne communiquez pas ce code. Si
+                  vous n’êtes pas à l’origine de cette demande, ignorez
+                  simplement cet email.
+                </p>
+              </td>
+            </tr>
+
+            <!-- Footer -->
+            <tr>
+              <td
+                align="center"
+                style="
+                  background-color: #eaf0f6;
+                  padding: 15px;
+                  font-size: 12px;
+                  color: #555;
+                "
+              >
+                &copy; {{ year }} [Nom de ton application]. Tous droits
+                réservés.
+              </td>
+            </tr>
+          </table>
+        </td>
+      </tr>
+    </table>
+  </body>
+</html>

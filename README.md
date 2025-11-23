@@ -1,4 +1,4 @@
-# Système de Gestion du Personnel et Suivui des Congés
+# Système de Gestion du Personnel et Suivi des Congés
 
 > développée dans le cadre d'un projet de stage académique (Développement web React + Django).
 

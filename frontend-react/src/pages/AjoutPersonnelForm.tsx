@@ -39,15 +39,9 @@ const AjoutPersonnelForm: React.FC = () => {
         },
       });
       showAlert(res.data.message, "success");
-      console.log(res.data.message);
       reset();
     } catch (err: unknown) {
       if (axios.isAxiosError(err)) {
-        console.log(
-          "erreur de la requête",
-          err.response?.data || "Aucune reponse de l'api"
-        );
-        console.log("err", err.message || "Aucun message de l'api");
         if (err.response) {
           const data = err.response.data;
           const backendMessage =

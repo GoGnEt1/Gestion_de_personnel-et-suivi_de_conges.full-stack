@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo } from "react";
 import { motion } from "framer-motion";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
-import { User, ClipboardList, Clock } from "lucide-react";
+import { User, ClipboardList, Clock, File } from "lucide-react";
 import { slugify } from "../utils/slugify";
 import type { Personnel } from "../types/personnel";
 import axiosClient from "../api/axiosClient";
@@ -57,6 +57,12 @@ const UserDashboard: React.FC = () => {
       title: "DemandeCongesForm",
       icon: <ClipboardList className="w-10 h-10" />,
       color: "bg-green-500",
+    },
+    {
+      link: "mes-demandes-conges",
+      title: "MesDemandesConges",
+      icon: <File className="w-10 h-10" />,
+      color: "bg-gray-500",
     },
     {
       link: `mon-profil/${personnel?.id}-${slugi}`,

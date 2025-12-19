@@ -16,7 +16,7 @@ const HistoriqueDemandeConge: React.FC = () => {
     try {
       const access = localStorage.getItem("access");
       const response = await axiosClient.get(
-        "http://127.0.0.1:8000/api/conges/demande-conge/mes_demandes/",
+        "/conges/demande-conge/mes_demandes/",
         {
           headers: {
             Authorization: `Bearer ${access}`,
@@ -41,8 +41,8 @@ const HistoriqueDemandeConge: React.FC = () => {
   const handleAnnuler = async (id: number) => {
     try {
       const access = localStorage.getItem("access");
-      const response = await axios.post(
-        `http://127.0.0.1:8000/api/conges/demande-conge/${id}/annuler/`,
+      const response = await axiosClient.post(
+        `/conges/demande-conge/${id}/annuler/`,
         {},
         {
           headers: {
@@ -80,14 +80,11 @@ const HistoriqueDemandeConge: React.FC = () => {
     }
   };
   return (
-    <div className="min-h-screen bg-gray-100 flex flex-col">
+    <div className=" bg-gray-100">
       <main className="flex-grow p-4">
         <h2 className="text-2xl font-semibold mb-4">{t("user.mysRequests")}</h2>
 
         <div>
-          {/* <h2 className="text-xl font-semibold mb-2">
-            {t("user.requestsHistory")}
-          </h2> */}
           <AlerteMessage
             errorMessage={errorMessage}
             successMessage={successMessage}
@@ -96,9 +93,6 @@ const HistoriqueDemandeConge: React.FC = () => {
           <table className="min-w-full divide-y divide-gray-200">
             <thead className="bg-gray-50">
               <tr>
-                {/* <th className="px-6 py-3 bg-gray-50 text-left text-xs leading-4 font-medium text-gray-500 uppercase tracking-wider">
-                  {t("user.requestPeriod")}
-                </th> */}
                 <th className="px-4 py-3 bg-gray-50 text-left text-sm font-medium tracking-wider">
                   {t("user.table.periode")}
                 </th>
@@ -156,7 +150,7 @@ const HistoriqueDemandeConge: React.FC = () => {
                       type="button"
                       disabled={demande.statut !== "en_attente"}
                       onClick={() => handleAnnuler(demande.id)}
-                      className={`px-3 py-1 rounded-lg shadow bg-red-600 text-white hover:opacity-90 disabled:bg-gray-300`}
+                      className={`px-3 py-1 rounded-lg shadow bg-red-600 text-white hover:opacity-90 disabled:bg-red-300`}
                     >
                       {t("user.annuler")}
                     </button>
@@ -169,7 +163,8 @@ const HistoriqueDemandeConge: React.FC = () => {
         </div>
       </main>
 
-      <div className="mt-8 flex flex-row-reverse justify-between items-center">
+      <div className="mt-8 flex justify-end">
+        {/* <div className="mt-8 flex flex-row-reverse justify-between items-center"> */}
         {totalPages > 1 && (
           <Pagination
             currentPage={currentPage}
@@ -177,29 +172,6 @@ const HistoriqueDemandeConge: React.FC = () => {
             onPageChange={onPageChange}
           />
         )}
-        <div className="flex gap-4 lg:gap-5">
-          <button
-            type="button"
-            onClick={() => window.history.back()}
-            className="bg-blue-500 hover:bg-blue-700 text-white font-bold px-3 py-2 text-sm lg:px-4 rounded"
-          >
-            {t("congeDetails.back")}
-          </button>
-          <button
-            type="button"
-            onClick={() => (window.location.href = "demande-conges-form")}
-            className="bg-blue-500 hover:bg-blue-700 text-white font-bold px-3 py-2 text-sm lg:px-4 rounded"
-          >
-            {t("congeDetails.demandeConge")}
-          </button>
-          <button
-            type="button"
-            onClick={() => (window.location.href = "historique-conges")}
-            className="bg-blue-500 hover:bg-blue-700 text-white font-bold px-3 py-2 text-sm lg:px-4 rounded"
-          >
-            {t("congeDetails.historiqueConges")}
-          </button>
-        </div>
       </div>
     </div>
   );

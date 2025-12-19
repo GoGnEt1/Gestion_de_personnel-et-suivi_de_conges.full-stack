@@ -32,6 +32,7 @@
   "loginSuccess": "Connexion reussie",
   "loadingConnect": "Connexion en cours...",
   "loginSe": "Se connecter",
+  "conge_initial": "Vacances générales/grade",
 
   "forgotPassword": {
     "title": "Mot de passe oublié",
@@ -57,6 +58,7 @@
     "errorExpired": "Le code a expiré.",
     "errorTooManyAttempts": "Trop de tentatives. Le code est invalide.",
     "errorNotFound": "Code non trouvé.",
+    "rememberDevice": "Fais confiance à cet appareil",
     "helpText": "Si vous rencontrez des difficultés, contactez l'administrateur."
   },
 
@@ -173,7 +175,9 @@
       "ModofieConges": "Modfier les paramètres de conge",
       "ImportConges": "Importation des conges",
       "MonCompte": "Mon compte",
-      "AjoutPersonnel": "Ajouter de personnels"
+      "AjoutPersonnel": "Ajouter de personnels",
+      "EspacePersonnel": "Espace personnel",
+      "EspaceAdmin": "Espace administrateur"
     }
   },
 

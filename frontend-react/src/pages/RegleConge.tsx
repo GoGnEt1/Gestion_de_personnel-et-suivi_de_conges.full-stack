@@ -35,7 +35,7 @@ const RegleConge: React.FC = () => {
     const access = localStorage.getItem("access");
     if (!access) return;
 
-    fetch("http://127.0.0.1:8000/api/conges/regle-conge/get_regle_courante/", {
+    fetch("http://192.168.100.13/api/conges/regle-conge/get_regle_courante/", {
       headers: {
         "Content-Type": "application/json",
         Authorization: `Bearer ${access}`,
@@ -101,7 +101,6 @@ const RegleConge: React.FC = () => {
       if (response.ok) {
         showAlert(res.message || t("regleForm.success"), "success");
         const regle = data;
-        console.log(regle);
         reset({
           conge_initial_autres: regle.conge_initial_autres,
           conge_initial_tech: regle.conge_initial_tech,

@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from "react";
 import { motion } from "framer-motion";
 import { useTranslation } from "react-i18next";
-import { useNavigate, useLocation } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import {
   BookOpen,
   ClipboardList,
@@ -10,7 +10,11 @@ import {
   Import,
   FileSpreadsheet,
   User,
+  // users
+  Users,
+  // Clock
   Clock,
+  File,
 } from "lucide-react";
 
 import { slugify } from "../utils/slugify";
@@ -26,19 +30,19 @@ type Card = {
 
 const AdminDashboard: React.FC = () => {
   const navigate = useNavigate();
-  const location = useLocation();
-  const success = location.state?.success || false;
-  const [visible, setVisible] = useState(true);
+  // const location = useLocation();
+  // const success = location.state?.success || false;
+  // const [visible, setVisible] = useState(true);
   const [personnel, setPersonnel] = useState<Personnel | null>(null);
 
   const { t } = useTranslation();
 
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setVisible(false);
-    }, 5000);
-    return () => clearTimeout(timer);
-  }, []);
+  // useEffect(() => {
+  //   const timer = setTimeout(() => {
+  //     setVisible(false);
+  //   }, 5000);
+  //   return () => clearTimeout(timer);
+  // }, []);
 
   useEffect(() => {
     const fetchPersonnel = async () => {
@@ -56,6 +60,7 @@ const AdminDashboard: React.FC = () => {
 
     fetchPersonnel();
   }, []);
+
   // slugi recalculé uniquement quand personnel change
   const slugi = useMemo(
     () =>
@@ -65,25 +70,13 @@ const AdminDashboard: React.FC = () => {
     [personnel]
   );
   // cards pour le dashboard de l'admin, gerer les conges (voir les congés, demandes de conges pour valider ou refuser, etc); gérer des personnels (CRUD)
-  const cards: Card[] = [
+  const cards_admin: Card[] = [
     // ajout de personnel
     {
       link: "ajout-personnel",
       title: "AjoutPersonnel",
-      icon: <User className="w-10 h-10" />,
+      icon: <Users className="w-10 h-10" />,
       color: "bg-amber-500",
-    },
-    {
-      link: `historique-conges/${personnel?.id}-${slugi}`,
-      title: "MonHistoriqueConges",
-      icon: <Clock className="w-10 h-10" />,
-      color: "bg-blue-500",
-    },
-    {
-      link: "demande-conges-form",
-      title: "DemandeCongesForm",
-      icon: <ClipboardList className="w-10 h-10" />,
-      color: "bg-green-500",
     },
     // gestion des conges
     {
@@ -98,6 +91,7 @@ const AdminDashboard: React.FC = () => {
       icon: <BookOpen className="w-10 h-10" />,
       color: "bg-green-500",
     },
+    // gestion des personnels
     {
       link: "list-personnels",
       title: "listPersonnels",
@@ -130,6 +124,29 @@ const AdminDashboard: React.FC = () => {
       icon: <FileSpreadsheet className="w-10 h-10" />,
       color: "bg-violet-500",
     },
+  ];
+
+  // espace personnel
+  const cards_perso: Card[] = [
+    {
+      link: `historique-conges/${personnel?.id}-${slugi}`,
+      title: "MonHistoriqueConges",
+      icon: <Clock className="w-10 h-10" />,
+      color: "bg-blue-500",
+    },
+    {
+      link: "demande-conges-form",
+      title: "DemandeCongesForm",
+      icon: <ClipboardList className="w-10 h-10" />,
+      color: "bg-green-500",
+    },
+    // mes demandes de congés
+    {
+      link: "mes-demandes-conges",
+      title: "MesDemandesConges",
+      icon: <File className="w-10 h-10" />,
+      color: "bg-gray-500",
+    },
     // mon compte
     {
       link: `personnel/${personnel?.id}-${slugi}`,
@@ -140,20 +157,55 @@ const AdminDashboard: React.FC = () => {
   ];
 
   return (
-    <div>
-      {success && visible && (
+    <div className="p-4">
+      {/* {success && visible && (
         <div className="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded relative">
           <span className="block sm:inline">{success}</span>
         </div>
-      )}
+      )} */}
+      <h1 className="text-2xl font-semibold mb-4">
+        {t(`dasboard.cards.EspaceAdmin`)}
+        <hr className="ml-2 mb-1 inline-block w-[40%] lg:w-3/5 border border-gray-300 rounded-lg shadow-md bg-gray-50" />
+      </h1>
+      <motion.main
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5 }}
+        className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4"
+      >
+        {cards_admin.map((card, index) => (
+          <motion.div
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.97 }}
+            className={`p-6 rounded-xl shadow text-white h-35 lg:h-40 flex flex-col justify-between hover:shadow-md transition ${card.color}`}
+            onClick={() => navigate(card.link)}
+            key={index}
+          >
+            {/* <div className="flex items-center mb-2"> */}
+            <div className="mr-2">{card.icon}</div>
+            <h2
+              className="text-sm lg:text-text-base font-semibold cursor-pointer"
+              onClick={() => navigate(card.link)}
+            >
+              {t(`dasboard.cards.${card.title}`)}
+            </h2>
+            {/* </div> */}
+          </motion.div>
+        ))}
+      </motion.main>
+
+      <h1 className="text-2xl font-semibold mb-4 mt-8">
+        {t(`dasboard.cards.EspacePersonnel`)}
+        <hr className="ml-2 mb-1 inline-block w-[40%] lg:w-3/5 border border-gray-300 rounded-lg shadow-md bg-gray-50" />
+      </h1>
 
       <motion.main
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5 }}
-        className="grid gap-4 p-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4"
+        className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4"
       >
-        {cards.map((card, index) => (
+        {cards_perso.map((card, index) => (
           <motion.div
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.97 }}

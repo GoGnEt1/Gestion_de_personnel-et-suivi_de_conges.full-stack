@@ -1,6 +1,3 @@
-// utils/api.ts (axiosClient déjà configuré with baseURL + interceptors)
-// PersonnelMedia.tsx (partie de PersonnelDetails)
-// import React from "react";
 import axiosClient from "../api/axiosClient";
 import type { Personnel } from "../types/personnel";
 import axios from "axios";

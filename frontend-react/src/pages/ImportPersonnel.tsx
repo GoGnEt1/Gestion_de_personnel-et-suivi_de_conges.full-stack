@@ -3,6 +3,7 @@ import * as XLSX from "xlsx";
 import { motion } from "framer-motion";
 import type { Personnel } from "../types/personnel";
 import { useTranslation } from "react-i18next";
+import { API_URL } from "../api/http";
 
 const ImportPersonnel: React.FC = () => {
   const [excelFile, setExcelFile] = useState<File | null>(null);
@@ -60,16 +61,13 @@ const ImportPersonnel: React.FC = () => {
     form.append("overwrite", "true");
 
     try {
-      const res = await fetch(
-        "http://127.0.0.1:8000/api/personnels/import_zip_excel/",
-        {
-          method: "POST",
-          headers: {
-            Authorization: `Bearer ${localStorage.getItem("access")}`,
-          },
-          body: form,
-        }
-      );
+      const res = await fetch(`${API_URL}/personnels/import_zip_excel/`, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("access")}`,
+        },
+        body: form,
+      });
 
       const data = await res.json();
       if (res.ok) {

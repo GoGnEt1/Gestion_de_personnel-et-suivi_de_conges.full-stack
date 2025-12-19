@@ -29,10 +29,8 @@ const PersonnelDetails: React.FC = () => {
   // recuperer uniquement l'id au debut de 'slug'
   const id = slug?.split("-")[0];
   const isMe = user?.personnel?.id.toString() === id;
-  console.log(user?.personnel?.id.toString(), id);
   const slugi =
     slugify(personnel?.nom || "") + "-" + slugify(personnel?.prenoms || "");
-  console.log("is_superuser: ", user);
   useEffect(() => {
     setLoading(true);
 
@@ -429,64 +427,6 @@ const PersonnelDetails: React.FC = () => {
                     personnel={personnel}
                     setPersonnel={setPersonnel}
                   />
-                  // <div className="p-6">
-                  //   <h3 className="text-lg font-semibold mb-3">
-                  //     {t("personnel.medias")}
-                  //   </h3>
-                  //   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  //     {[
-                  //       {
-                  //         label: "personnel.pv_affectation",
-                  //         url: personnel.pv_affectation,
-                  //       },
-                  //       { label: "personnel.cv", url: personnel.cv },
-                  //       {
-                  //         label: "personnel.decret_officiel",
-                  //         url: personnel.decret_officiel,
-                  //       },
-                  //       {
-                  //         label: "personnel.fiche_fonction",
-                  //         url: personnel.fiche_fonction,
-                  //       },
-                  //       {
-                  //         label: "personnel.fiche_module_fr",
-                  //         url: personnel.fiche_module_fr,
-                  //       },
-                  //       {
-                  //         label: "personnel.fiche_module_en",
-                  //         url: personnel.fiche_module_en,
-                  //       },
-                  //     ].map((items, index) => (
-                  //       <div
-                  //         key={index}
-                  //         className="border rounded p-3 items-center justify-between border-gray-400 hover:border-blue-300"
-                  //       >
-                  //         <div>
-                  //           <div className="font-medium">
-                  //             {t(`${items.label}`)}
-                  //           </div>
-                  //           <div className="text-sm text-gray-500">
-                  //             {items.url
-                  //               ? items.url.split("/").pop()
-                  //               : `${t("personnel.noFile")}`}
-                  //           </div>
-                  //         </div>
-                  //         <div>
-                  //           {items.url ? (
-                  //             <a
-                  //               href={items.url}
-                  //               target="_blank"
-                  //               rel="noreferrer"
-                  //               className="text-blue-500 hover:underline"
-                  //             >
-                  //               {t("personnel.download")}
-                  //             </a>
-                  //           ) : null}
-                  //         </div>
-                  //       </div>
-                  //     ))}
-                  //   </div>
-                  // </div>
                 )}
 
                 {activeTab === "fiche" && personnel && (

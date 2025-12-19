@@ -28,7 +28,6 @@ const PersonnelCongeDetails: React.FC = () => {
       .then((conges) => {
         if (!mounted) return;
         setConges(conges);
-        console.log("conges", conges);
         // si on a des conges -> prendre demandes du premier conge (ou choisir la logique)
         if (Array.isArray(conges) && conges.length > 0) {
           setDemandes(
@@ -57,32 +56,32 @@ const PersonnelCongeDetails: React.FC = () => {
   const demande = demandes[0];
   const rows: Array<[string, string | number]> = [
     ["matricule", conge.personnel.matricule],
+    ["conge_initial", conge.conge_initial],
     [
       `restantConge ${new Date().getFullYear()}`,
-      Math.round(conge.conge_restant_annee_courante),
+      conge.conge_restant_annee_courante,
     ],
     [
       `restantConge ${new Date().getFullYear() - 1}`,
-      Math.round(conge.conge_restant_annee_n_1),
+      conge.conge_restant_annee_n_1,
     ],
     [
       `restantConge ${new Date().getFullYear() - 2}`,
-      Math.round(conge.conge_restant_annee_n_2),
+      conge.conge_restant_annee_n_2,
     ],
-    ["totalConge", Math.round(conge.conge_total)],
+    ["totalConge", conge.conge_total],
     // ["quotaMensuel", conge.quota_mensuel],
-    [
+    /*[
       "resteCumules",
       Object.values(conge.conge_mensuel_restant || {}).reduce(
         (acc, val) => acc + Number(val || 0),
         0
       ),
-    ],
+    ],*/
 
-    ["conge_compasatoire", Math.round(conge.conge_compasatoire)],
-    ["conge_exceptionnel", Math.round(conge.conge_exceptionnel)],
+    ["conge_compasatoire", conge.conge_compasatoire],
+    ["conge_exceptionnel", conge.conge_exceptionnel],
   ];
-  console.log("resteCumules: ", conge.conge_mensuel_restant || 0);
 
   return (
     <section className="p4">

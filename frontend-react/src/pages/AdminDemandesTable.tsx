@@ -64,27 +64,17 @@ const AdminDemandesTable: React.FC<Props> = ({ lockMinutes = 15 }) => {
             Array.isArray(v) ? `${v.join(", ")}` : `${v}`
           );
           setErrorMessage(msgs.join(" — "));
-          console.log("erreur de validation 1: ", msgs);
         } else if (typeof err === "object" && err !== null && "detail" in err) {
           const detail = (err as { detail: string | string[] }).detail;
           setErrorMessage(Array.isArray(detail) ? detail.join(" — ") : detail);
-          console.log("erreur de validation 2: ", detail);
         } else if (
           typeof err === "object" &&
           err !== null &&
           "message" in err
         ) {
           setErrorMessage((err as { message: string }).message);
-          console.log(
-            "erreur de validation 3: ",
-            (err as { message: string }).message
-          );
         } else {
           setErrorMessage("Une erreur est survenue. Réessayez.");
-          console.log(
-            "erreur de validation 4: ",
-            "Une erreur est survenue. Réessayez."
-          );
         }
       } finally {
         setActingId(null);

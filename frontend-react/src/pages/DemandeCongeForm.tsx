@@ -5,6 +5,8 @@ import { useTranslation } from "react-i18next";
 import { FaTimes } from "react-icons/fa";
 import { motion } from "framer-motion";
 import Alert from "../components/Alert";
+import { useNavigate } from "react-router-dom";
+import { useAuth } from "../context/useAuth";
 
 const DemandeCongeForm: React.FC = () => {
   const [debut, setDebut] = useState("");
@@ -16,6 +18,10 @@ const DemandeCongeForm: React.FC = () => {
     type: "success" | "error";
     message: string;
   } | null>(null);
+
+  const navigate = useNavigate();
+
+  const { user } = useAuth();
 
   const showAlert = (message: string, type: "success" | "error") => {
     setAlert({ message, type });
@@ -63,6 +69,13 @@ const DemandeCongeForm: React.FC = () => {
       setDebut("");
       setJours(0);
       setMotif("");
+      setTimeout(() => {
+        if (user?.role === "admin") {
+          navigate("/dashboard/admin/mes-demandes-conges");
+        } else {
+          navigate("/dashboard/user/mes-demandes-conges");
+        }
+      }, 1000);
     } catch (err: unknown) {
       if (axios.isAxiosError(err)) {
         if (err.response) {

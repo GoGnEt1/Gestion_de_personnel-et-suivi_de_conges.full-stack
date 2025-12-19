@@ -73,13 +73,9 @@ const RegleCongeForm: React.FC = () => {
       );
       if (response.ok) {
         navigate("/dashboard/admin/regle-conges");
-        console.log("Regle modifiée avec succès!");
-      } else {
-        console.log("Une erreur est survenue. Veuillez reessayer.");
       }
     } catch (err) {
       console.error("Une erreur est survenue: ", err);
-      console.log("Probleme de connexion: ");
     }
   };
   return (

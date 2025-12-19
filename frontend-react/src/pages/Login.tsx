@@ -9,7 +9,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { FaTimes, FaEnvelope, FaLock, FaUnlock } from "react-icons/fa";
 import axios from "axios";
 import axiosClient from "../api/axiosClient";
-import { v4 as uuidv4 } from "uuid";
+// import { v4 as uuidv4 } from "uuid";
 
 import "../styles/styles.css";
 
@@ -32,8 +32,8 @@ const Login: React.FC<LoginProps> = ({ setAuth }) => {
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const [loading, setLoading] = useState(false);
-  const [rememberDevice, setRememberDevice] = useState(false);
-  const deviceId = rememberDevice ? uuidv4() : null;
+  // const [rememberDevice, setRememberDevice] = useState(false);
+  // const deviceId = rememberDevice ? uuidv4() : null;
   const passwordVisibility = () => {
     setshowPassord((prev) => !prev);
   };
@@ -47,19 +47,24 @@ const Login: React.FC<LoginProps> = ({ setAuth }) => {
     setSuccess("");
     setLoading(true);
     try {
-      const payload = {
+      const existingDeviceId =
+        localStorage.getItem("trustedDeviceId") || undefined;
+      const payload: {
+        matricule: string;
+        password: string;
+        device_id?: string;
+      } = {
         matricule: data.matricule,
         password: data.password,
-        remember_device: rememberDevice, // boolean bindé à une checkbox
-        // optional: device_id: localStorage.getItem('deviceId') || generateOne()
-        device_id: deviceId,
       };
+      if (existingDeviceId) {
+        payload.device_id = existingDeviceId;
+      }
       const res = await axiosClient.post("/auth/login/", payload);
 
       if (res.data.otp_required) {
         if (res.data.masked_email) {
           localStorage.setItem("resetEmail", res.data.masked_email);
-          console.log("email de reset password", res.data.masked_email);
         }
         if (res.data.nom || res.data.prenoms)
           localStorage.setItem(
@@ -69,13 +74,7 @@ const Login: React.FC<LoginProps> = ({ setAuth }) => {
 
         // stocke data utiles device_id_expected
         localStorage.setItem("resetMatricule", data.matricule);
-        if (rememberDevice) {
-          const uuid = uuidv4();
-          localStorage.setItem("deviceId", uuid);
-        }
 
-        if (res.data.masked)
-          localStorage.setItem("resetEmailMasked", res.data.masked);
         if (res.data.expire_at)
           localStorage.setItem("verifyExpireAt", String(res.data.expire_at));
         // si le backend attend un device_id -> generate and store one
@@ -86,11 +85,9 @@ const Login: React.FC<LoginProps> = ({ setAuth }) => {
       }
 
       // sinon login automatique (trusted device)
-      // const { access, refresh } = token;
       login(res.data.access, res.data.refresh);
-      // store user payload si present
+      // stocke user payload si present
       setAuth(true);
-      // navigate("/dashboard");
     } catch (error: unknown) {
       if (axios.isAxiosError(error)) {
         if (error.response && error.response.status === 401) {
@@ -214,18 +211,7 @@ const Login: React.FC<LoginProps> = ({ setAuth }) => {
                   )}
                 </div>
 
-                <div className="flex items-center justify-between">
-                  <label htmlFor="" className="text-sm">
-                    <input
-                      title="Fais confiance à cet appareil"
-                      type="checkbox"
-                      name="remember_device"
-                      checked={rememberDevice}
-                      className="mr-2"
-                      onChange={(e) => setRememberDevice(e.target.checked)}
-                    />
-                    Fais confiance à cet appareil
-                  </label>
+                <div className="flex items-center justify-end">
                   <Link
                     to="/forgot-password"
                     className="text-[#00bcd4] hover:underline text-sm"

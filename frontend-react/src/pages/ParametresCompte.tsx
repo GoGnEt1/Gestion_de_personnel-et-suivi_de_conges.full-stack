@@ -9,6 +9,7 @@ import Alert from "../components/Alert";
 import axios from "axios";
 import { useForm } from "react-hook-form";
 import { useParams } from "react-router-dom";
+import { API_URL } from "../api/http";
 
 import ImageCropper from "../components/ImageCropper";
 
@@ -218,12 +219,10 @@ const ParametresCompte: React.FC = () => {
       const res = await axiosClient.patch(url, filteredPlayload);
       setPersonnel(res.data);
       setValeurActuelle(res.data);
-      console.log("données envoyées: ", filteredPlayload);
       showAlert(t("parametre.successProfile"), "success");
     } catch (err: unknown) {
       if (axios.isAxiosError(err)) {
         if (err.response) {
-          console.log("err.response.data: ", err.response.data);
           const backendMessage =
             err.response.data.message ||
             err.response.data.error ||
@@ -234,7 +233,6 @@ const ParametresCompte: React.FC = () => {
               )
               .join(" • ") ||
             t("parametre.errorProfile");
-          console.log("backendMessage: ", backendMessage);
           showAlert(backendMessage, "error");
         } else {
           showAlert("Impossible de contacter le serveur.", "error");
@@ -309,17 +307,14 @@ const ParametresCompte: React.FC = () => {
   const newPassword = watch("new_password");
   const handlePasswordSave = async (data: Password) => {
     try {
-      const res = await fetch(
-        "http://127.0.0.1:8000/api/auth/change-password/",
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${localStorage.getItem("access")}`,
-          },
-          body: JSON.stringify(data),
-        }
-      );
+      const res = await fetch(`${API_URL}/auth/change-password/`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${localStorage.getItem("access")}`,
+        },
+        body: JSON.stringify(data),
+      });
 
       const response = await res.json();
       if (res.ok) {

@@ -10,6 +10,21 @@ import { useAuth } from "../context/useAuth";
 const EXPIRATION_SECONDS = 150;
 const REDIRECTION_APRES_EXPIRATION_SECONDS = 60;
 
+function generateDeviceId() {
+  // Utilise la Web Crypto API si disponible
+  if (window.crypto && window.crypto.getRandomValues) {
+    const buffer = new Uint8Array(16);
+    window.crypto.getRandomValues(buffer);
+    return Array.from(buffer)
+      .map((b) => b.toString(16).padStart(2, "0"))
+      .join("");
+  }
+  // fallback
+  return `${Date.now().toString(36)}-${Math.random()
+    .toString(36)
+    .slice(2, 10)}`;
+}
+
 // ON VA MAPPER LES MESSAGES BACKEND
 const mapBackendMessageToTranslationKey = (msg: string | null) => {
   // si on a des messages backend, on les mappe ici vers les clé i18n
@@ -59,10 +74,8 @@ const VerifyCode: React.FC = () => {
   // recupérer l'adresse email de l'utilisateur à partir du matricule
   // afficher le masque d'email
   const maskedEmail = localStorage.getItem("resetEmail") || "";
-  console.log("email de reset password", maskedEmail);
 
   const maskedName = localStorage.getItem("resetName") || "";
-  console.log("nom complet de reset password", `${maskedName}`);
 
   // référence pour éviter modification après un unmount
   const isMounted = useRef(true);
@@ -169,37 +182,65 @@ const VerifyCode: React.FC = () => {
     return `${minutes}:${remainingSeconds}`;
   };
 
-  // traitement du formulaire
+  /* gestion du device_id */
+  const [rememberDevice, setRememberDevice] = useState<boolean>(false);
+  const [deviceId, setDeviceId] = useState<string | null>(
+    localStorage.getItem("trustedDeviceId") || null
+  );
+
+  // générer device id local si l'utilisateur coche et qu'il n'y en a pas
+  useEffect(() => {
+    if (rememberDevice && !deviceId) {
+      const id = generateDeviceId();
+      setDeviceId(id);
+    }
+  }, [rememberDevice, deviceId]);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      const matricule = localStorage.getItem("resetMatricule");
-      const deviceIdIfAny = localStorage.getItem("deviceId");
-      const response = await axiosClient.post("/auth/verify-code/", {
-        matricule,
-        code,
-        device_id: deviceIdIfAny,
-      });
+      const matricule = localStorage.getItem("resetMatricule") || "";
+      const payload: {
+        matricule: string;
+        code: string;
+        device_id?: string;
+        trust_device?: boolean;
+      } = { matricule, code };
+      if (rememberDevice && deviceId) {
+        payload.trust_device = true;
+        payload.device_id = deviceId;
+      }
+      // MAT00001
+      const response = await axiosClient.post("/auth/verify-code/", payload);
 
-      localStorage.removeItem("verifyExpireAt");
-
-      // si tokens présents -> on stocke
+      // Si tokens -> store tokens
       if (response.data.access && response.data.refresh) {
         localStorage.setItem("access", response.data.access);
         localStorage.setItem("refresh", response.data.refresh);
-        // si must_change_password -> rediriger vers reset-password
+
+        // Si backend a renvoyé device_id (ou on en a un côté client) -> stocker en localStorage
+        const returnedDeviceId = response.data.device_id || deviceId;
+        if (returnedDeviceId && rememberDevice) {
+          localStorage.setItem("trustedDeviceId", returnedDeviceId);
+          // stocke expiry (30 days) en ms pour vérification côté client
+          const expiryMs = Date.now() + 30 * 24 * 60 * 60 * 1000;
+          localStorage.setItem("trustedDeviceExpiry", String(expiryMs));
+        }
+
+        // si must_change_password -> rediriger
         if (response.data.must_change_password) {
           navigate("/reset-password");
           return;
         }
-        // sinon -> dashboard
+
+        // sinon login
         login(response.data.access, response.data.refresh);
-        // navigate("/dashboard/user"); // ou admin selon role
         return;
       }
-      // fallback: si backend renvoie seulement message (ancienne impl)
+
+      // fallback (ancienne impl)
       setSuccess(response.data.message);
-      setTimeout(() => navigate("/reset-password"), 1500);
+      // setRememberDevice(false);
 
       //  liberer le localStorage
       localStorage.removeItem("resetMatricule");
@@ -237,7 +278,6 @@ const VerifyCode: React.FC = () => {
       }
     }
   };
-
   // si expire, on affiche le panneau rouge d'expiration full-screen
   if (expire) {
     return (
@@ -352,6 +392,18 @@ const VerifyCode: React.FC = () => {
                 {t("verifyCode.verify")}
               </button>
             </div>
+            <label htmlFor="" className="text-sm">
+              <input
+                title="Fais confiance à cet appareil"
+                type="checkbox"
+                name="remember_device"
+                checked={rememberDevice}
+                onChange={(e) => setRememberDevice(e.target.checked)}
+                className="mr-2"
+                // onChange={(e) => setRememberDevice(e.target.checked)}
+              />
+              {t("verifyCode.rememberDevice")}
+            </label>
             {error && (
               <p className="text-red-600 text-center text-sm">{error}</p>
             )}

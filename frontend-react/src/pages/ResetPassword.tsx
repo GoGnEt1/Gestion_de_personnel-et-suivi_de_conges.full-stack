@@ -1,9 +1,11 @@
 import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
 import axios from "axios";
+import axiosClient from "../api/axiosClient";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { FaTimes } from "react-icons/fa";
+import { useAuth } from "../context/useAuth";
 
 const ResetPassword: React.FC = () => {
   const { t } = useTranslation();
@@ -14,18 +16,17 @@ const ResetPassword: React.FC = () => {
   const [error, setError] = useState("");
   const matricule = localStorage.getItem("resetMatricule") || "";
 
+  const { login } = useAuth();
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
     try {
-      const response = await axios.post(
-        "http://127.0.0.1:8000/api/auth/reset-password/",
-        {
-          matricule,
-          new_password: newPassword,
-          confirm_password: confirmPassword,
-        }
-      );
+      const response = await axiosClient.post("/auth/reset-password/", {
+        matricule,
+        new_password: newPassword,
+        confirm_password: confirmPassword,
+      });
       // comparer les deux mots de passe
       if (newPassword !== confirmPassword) {
         setError(t("resetPassword.passwordsDontMatch"));
@@ -34,7 +35,8 @@ const ResetPassword: React.FC = () => {
       setSuccess(response.data.message);
       localStorage.removeItem("resetMatricule");
       setTimeout(() => {
-        navigate("/login");
+        // navigate("/login");
+        login(response?.data.access, response?.data.refresh);
       }, 2000);
     } catch (err: unknown) {
       if (axios.isAxiosError(err)) {

@@ -40,6 +40,8 @@ export type Conge = {
   // quota_mensuel: number;
   personnel: Personnel;
   demandes?: DemandeConge | null;
+  // fonction jours_acquis qui retour un decimal
+  jours_acquis: () => number;
 };
 
 // gestion des erreurs json

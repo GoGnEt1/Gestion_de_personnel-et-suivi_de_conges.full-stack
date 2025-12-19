@@ -1,9 +1,10 @@
 /* indispensable pour centraliser la configuration de axios(base URL, headers, interceptors, etc) et eviter de dupliquer la logique dans les services */
 import axios from "axios";
+import { API_URL } from "./http";
 
 const axiosClient = axios.create({
   // baseURL: import.meta.env.VITE_API_URL, // la var d'en est contraint de commencer par VITE_ pour pouvoir être lu par meta
-  baseURL: "http://127.0.0.1:8000/api",
+  baseURL: API_URL,
   headers: {
     "Content-Type": "application/json",
     Accept: "application/json",
@@ -14,9 +15,18 @@ const axiosClient = axios.create({
 //intercepteur : on ajoute automatiquement le token JWT dans les headers de la requête
 axiosClient.interceptors.request.use(
   (config) => {
-    const access = localStorage.getItem("access");
+    /*const access = localStorage.getItem("access");
     if (access && config.headers) {
       config.headers.Authorization = `Bearer ${access}`;
+    }*/
+    const skip = [
+      "/auth/request-reset-code/",
+      "/auth/verify-code/",
+      "/auth/reset-password/",
+    ];
+    if (!skip.some((p) => config.url?.includes(p))) {
+      const token = localStorage.getItem("access");
+      if (token) config.headers["Authorization"] = `Bearer ${token}`;
     }
     return config;
   },
@@ -51,7 +61,6 @@ axiosClient.interceptors.response.use(
         localStorage.removeItem("access");
         localStorage.removeItem("refresh");
         window.location.href = "/login"; // redirige vers la page de connexion
-        console.log("Vous devez vous connecter: token expiré ou invalide.");
       }
     }
     return Promise.reject(error);

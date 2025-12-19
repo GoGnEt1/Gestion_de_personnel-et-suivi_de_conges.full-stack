@@ -21,7 +21,6 @@ const AdminCongesTable: React.FC = () => {
   useEffect(() => {
     const access = localStorage.getItem("access");
     if (!access) {
-      console.log("vous n'êtes pas connecté");
       window.location.href = "/login";
       return;
     }

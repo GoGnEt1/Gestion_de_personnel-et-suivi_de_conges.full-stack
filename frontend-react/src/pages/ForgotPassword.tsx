@@ -1,9 +1,11 @@
 import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
 import axios from "axios";
+import axiosClient from "../api/axiosClient";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { FaTimes } from "react-icons/fa";
+
 // import { useAuth } from "../context/useAuth";
 
 const ForgotPassword: React.FC = () => {
@@ -12,22 +14,16 @@ const ForgotPassword: React.FC = () => {
   const [matricule, setMatricule] = useState("");
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
-  // const { user } = useAuth();
-  //   const [loading, setLoading] = useState(false);
 
-  // console.log(user);
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
     setSuccess("");
     // setLoading(true);
     try {
-      const response = await axios.post(
-        "http://127.0.0.1:8000/api/auth/request-reset-code/",
-        {
-          matricule,
-        }
-      );
+      const response = await axiosClient.post("/auth/request-reset-code/", {
+        matricule,
+      });
       const data = response?.data;
       setSuccess(t("forgot.success"));
       localStorage.setItem("resetMatricule", matricule);
@@ -43,7 +39,6 @@ const ForgotPassword: React.FC = () => {
       }
       if (data.masked_email) {
         localStorage.setItem("resetEmail", data.masked_email);
-        console.log("email de reset password", data.masked_email);
       }
       if (data.nom || data.prenoms)
         localStorage.setItem(
@@ -116,10 +111,8 @@ const ForgotPassword: React.FC = () => {
             </button>
           </form>
         </div>
-        {/* </div> */}
       </motion.div>
     </div>
-    // </div>
   );
 };
 

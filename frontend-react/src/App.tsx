@@ -119,9 +119,7 @@ const App: React.FC = () => {
 
       {/* Route par défaut */}
       <Route path="/" element={<Home />} />
-      {/* <Route path="/" element={<Navbar />} /> */}
       <Route path="*" element={<Navigate to="/" replace />} />
-      {/* routes pour PersonnelDetails */}
     </Routes>
   );
 };

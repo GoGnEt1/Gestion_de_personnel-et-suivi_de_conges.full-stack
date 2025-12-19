@@ -55,6 +55,7 @@ class Conge(models.Model):
     def __str__(self):
         return f"{self.personnel.nom} ({self.annee}) : {self.conge_total} jour(s)"
 
+    
     def initialiser(self):
         self.annee = timezone.now().year
         if not self.conge_initial:
@@ -132,6 +133,40 @@ class Conge(models.Model):
         if save: 
             self.save()
     
+    def recalculer_acquisition_mensuelle(self, as_of=None, save=True):
+        if as_of is None:
+            as_of = timezone.now().date()
+
+        self.annee = as_of.year
+
+        date_aff = parse_date(getattr(self.personnel, "date_affectation", None))
+        if not date_aff:
+            return
+
+        part = _quant(Decimal(self.conge_initial) / Decimal(12))
+        mois_courant = as_of.month
+
+        result = {f"{m:02d}": Decimal("0.00") for m in range(1, 13)}
+
+        if date_aff.year == self.annee:
+            mois_debut = date_aff.month
+            mois_range = range(mois_debut, mois_courant + 1)
+        elif date_aff.year < self.annee:
+            mois_range = range(1, mois_courant + 1)
+        else:
+            mois_range = []
+
+        for m in mois_range:
+            result[f"{m:02d}"] = part
+
+        self.conge_mensuel_restant = {k: float(v) for k, v in result.items()}
+        self.conge_restant_annee_courante = sum(result.values())
+
+        self.recalculer_total_conges(save=False)
+
+        if save:
+            self.save()
+
     def get_conges_valides(self):
         return DemandeConge.objects.filter(
             personnel=self.personnel, annee=self.annee, statut='valide'

@@ -27,6 +27,75 @@ from staf_manag.pandas_import import lire_docx, parse_date
 
 import pandas as pd
 
+""""
+def importer_conges(request):
+    if request.method == 'POST':
+        form = UploadFileForm(request.POST, request.FILES)
+        if form.is_valid():
+            fichier = request.FILES["fichier"]
+            extension = fichier.name.split(".")[-1].lower()
+
+            try:
+                last_n_rows = None
+                last_n_rows_str = request.POST.get('last_n_rows')
+                if last_n_rows_str and last_n_rows_str.isdigit():
+                    last_n_rows = int(last_n_rows_str)
+
+                if extension in ["xlsx", "xls"]:
+                    df = pd.read_excel(fichier)
+                    if last_n_rows:
+                        df = df.tail(last_n_rows)
+
+                elif extension == 'docx':
+                    df = lire_docx(fichier)
+                    if last_n_rows:
+                        df = df[-last_n_rows:]
+                else:
+                    messages.error(request, "Format non supporté.")
+                    return render(request, 'import.html', {"form": form})
+                
+                nb_insert = 0
+                n = len(df)
+                for _,row in df.iterrows():
+                    matricule = str(row['matricule']).strip()
+                    if not matricule:
+                        continue
+
+                    try:
+                        personnel = Personnel.objects.get(matricule=matricule)
+                    except Personnel.DoesNotExist:
+                        continue
+                    except Exception as e:
+                        continue
+
+                    try:
+                        # Créez un nouvel objet Conge
+                        conge = Conge(
+                            personnel=personnel,
+                            annee=datetime.now().year,
+                            conge_initial=row['conge_initial'],
+                            conge_restant_annee_courante=row['conge_initial'] or conge.conge_restant_annee_courante,
+                            conge_restant_annee_n_1=row['conge_restant_annee_n_1'] or conge.conge_restant_annee_n_1,
+                            conge_restant_annee_n_2=row['conge_restant_annee_n_2'] or conge.conge_restant_annee_n_2,
+                            conge_total=row['conge_total'] or conge.conge_total,
+                        
+                        )
+                        conge.full_clean()
+                        conge.recalculer_total_conges()
+                        nb_insert += 1
+                    except ValidationError as e:
+                        messages.error(request, f"Erreur lors de l'importation : {e}")
+                        continue
+                    
+                messages.success(request, f"{nb_insert} congés importés avec succès sur {n} ignorés (doublons)")
+
+            except Exception as e:
+                messages.error(request, f"Erreur : {e}")
+    else:
+        form = UploadFileForm()
+    
+    return render(request, "import.html", {"form": form})
+"""
 class IsAdminUser(permissions.BasePermission):
     """
     Permission personnalisée: s'assurer que l'utilisateur est admin
@@ -259,7 +328,7 @@ class DemandeCongeViewSet(viewsets.ModelViewSet):
                     "conge": demande,
                     "user": demande,
                     "year": timezone.now().year,
-                    "lien_espace": "http://localhost:5174/login",
+                    "lien_espace": "https://192.168.100.13/login",
                     "date_retour": date_retour,
                     "date_debut": date_debut
                 },
@@ -305,7 +374,7 @@ class DemandeCongeViewSet(viewsets.ModelViewSet):
                     "conge": demande,
                     "user": demande,
                     "year": timezone.now().year,
-                    "lien_espace": "http://localhost:5174/login",
+                    "lien_espace": "https://192.168.100.13/login",
                     "date_retour": date_retour,
                     "date_debut": date_debut,
                     "motif": motif
@@ -318,8 +387,8 @@ class DemandeCongeViewSet(viewsets.ModelViewSet):
     def annuler(self, request, pk=None):
         demande = self.get_object()
         # seul l'user peut annuler sa demande si statut = 'attente'
-        if request.user.is_staff:
-            return Response({"detail": "Les admins ne peuvent pas annuler ici"}, status=status.HTTP_403_FORBIDDEN)
+        # if request.user.is_staff:
+            # return Response({"detail": "Les admins ne peuvent pas annuler ici"}, status=status.HTTP_403_FORBIDDEN)
         if getattr(request.user, 'personnel', None) != demande.personnel:
             return Response({"detail": "Accès refusé"}, status=status.HTTP_403_FORBIDDEN)
         if demande.statut != 'en_attente':
@@ -339,9 +408,9 @@ class DemandeCongeViewSet(viewsets.ModelViewSet):
         # envoie une notificatons à l'admin par email
         admin_email = settings.EMAIL_HOST_USER
         if request.user.is_authenticated:
-            lien_espace = "http://localhost:5174/dashboard/admin"
+            lien_espace = "https://192.168.100.13/dashboard/admin"
         else:
-            lien_espace = "http://localhost:5174/login"
+            lien_espace = "https://192.168.100.13/login"
         send_html_email(
             subject="Demande de congé annulée",
             template="conge_annule.html",
@@ -371,7 +440,8 @@ class DemandeCongeViewSet(viewsets.ModelViewSet):
         serializer = self.get_serializer(data=request.data, context={'request': request})
         try:
             serializer.is_valid(raise_exception=True)
-            demande = serializer.save(personnel=user.personnel, conge=conge)
+            demande = serializer.save()
+            # demande = serializer.save(personnel=user.personnel, conge=conge)
         except DjangoValidationError as e:
             if hasattr(e, 'message_dict'):
                 return Response({"errors": e.message_dict}, status=status.HTTP_400_BAD_REQUEST)
@@ -386,9 +456,9 @@ class DemandeCongeViewSet(viewsets.ModelViewSet):
         # envoie une notificatons à l'admin par email
         admin_email = settings.EMAIL_HOST_USER
         if request.user.is_authenticated:
-            lien_espace = "http://localhost:5174/dashboard/admin"
+            lien_espace = "https://192.168.100.13/dashboard/admin"
         else:
-            lien_espace = "http://localhost:5174/login"
+            lien_espace = "https://192.168.100.13/login"
         send_html_email(
             subject="Nouvelle demande de congés",
             template="demande_conge.html",

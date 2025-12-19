@@ -63,6 +63,17 @@ class DemandeCongeSerializer(serializers.ModelSerializer):
         return super().create(validated_data)
     
     def validate(self, data):
+        request = self.context.get('request')
+        user = request.user
+
+        data['personnel'] = user.personnel
+        data['annee'] = timezone.now().year
+
+        conge = Conge.objects.filter(personnel=data['personnel'], annee=data['annee']).first()
+        if not conge:
+            raise serializers.ValidationError("Le conge n'existe pas pour cette personne")
+        
+        data['conge'] = conge
         # on instancie la demande sans la sauvegarder
         instance = DemandeConge(**data)
 

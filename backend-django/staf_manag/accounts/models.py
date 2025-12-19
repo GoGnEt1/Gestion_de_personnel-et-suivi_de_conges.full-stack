@@ -106,4 +106,9 @@ class TrustedDevice(models.Model):
     last_used = models.DateTimeField(auto_now=True)
 
     def __str__(self):
-        return f"Device de {self.user.matricule}"
+        return f"Device de {self.user.matricule} : {self.device_id[:8]}"
+    
+    def is_valid(self) -> bool:
+        if self.expires_at:
+            return timezone.now() < self.expires_at
+        return True

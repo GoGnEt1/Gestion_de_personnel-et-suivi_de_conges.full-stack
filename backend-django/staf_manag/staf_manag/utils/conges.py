@@ -57,13 +57,24 @@ def safe_value(val, default):
 def normalize(col):
     return (
         str(col)
-        .strip()
         .lower()
-        .replace("  ", " ")
+        .strip()
         .replace("\u200f", "")
         .replace("\u200e", "")
+        .replace("إ", "ا")
+        .replace("أ", "ا")
+        .replace("آ", "ا")
+        .replace("ة", "ه")
+        .replace("ى", "ي")
+        .replace("  ", " ")
+        .replace(" ", "")
     )
 from django.utils import timezone
+def normalize_map(col_map):
+    return {
+        key: [normalize(k) for k in values]
+        for key, values in col_map.items()
+    }
 
 today = timezone.now().date().year
 year_n = today
@@ -71,34 +82,34 @@ year_n_1 = today - 1
 year_n_2 = today - 2
 
 COL_MAP = {
-    "matricule": ["matricule", "المعرف"],
+    "matricule": [
+        "matricule",
+        "المعرفالوحيد",   # ← colonne réelle normalisée
+    ],
 
     "reste_n_2": [
-        f"reste de congée {year_n_2}",
-        f"الباقي من العطلة الإستراحة {year_n_2}",
-        f"الباقي من العطلة الاستراحة {year_n_2}",
+        "reste de congée {year_n_2}",
+        f"الباقيمنالعطلهالاستراحه{year_n_2}",
     ],
 
     "reste_n_1": [
-        f"reste de congée {year_n_1}",
-        f"الباقي من العطلة الإستراحة {year_n_1}",
-        f"الباقي من العطلة الاستراحة {year_n_1}",
+        "reste de congée {year_n_1}",
+        f"الباقيمنالعطلهالاستراحه{year_n_1}",
     ],
 
     "reste_n": [
         f"reste de congée {year_n}",
-        f"الباقي من العطلة الإستراحة {year_n}",
-        f"الباقي من العطلة الاستراحة {year_n}",
+        f"الباقيمنالعطلهالاستراحه{year_n}",
     ],
 
     "compensation": [
         "solde les heur.sup",
-        "الباقي من العطلة التعويضية",
+        "الباقيمنالعطلهالتعويضيه",
     ],
 
     "exceptionnel": [
         "solde suplémentaire",
-        f"الباقي من العطل الاستثنائية {year_n}",
+        f"الباقيمنالعطلالااستثنائيه{year_n}",
     ],
 }
 
@@ -113,8 +124,9 @@ def detect_header_row(df):
     raise ValueError("Ligne d’en-tête introuvable")
 
 def get_col(row, keys):
-    for k in keys:
-        val = row.get(k)
-        if val is not None and not pd.isna(val):
-            return val
+    for col_name in row.index:
+        if col_name in keys:
+            val = row[col_name]
+            if val is not None and not pd.isna(val):
+                return val
     return None

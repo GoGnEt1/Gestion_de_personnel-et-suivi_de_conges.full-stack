@@ -129,18 +129,23 @@ class CongeViewSet(viewsets.ModelViewSet):
         else:
             return Response({"error": "Veuillez fournir un fichier Excel."}, status=status.HTTP_400_BAD_REQUEST)
 
+        print("Colonnes normalisées détectées :", df.columns.tolist())
+
         logs = []
         annee = timezone.now().year
         for _, row in df.iterrows():
-            matricule = str(get_col(row, COL_MAP["matricule"]))
-            if not matricule or matricule.lower() == 'nan':
+            matricule = get_col(row, COL_MAP["matricule"])
+            if not matricule or pd.isna(matricule):
                 continue
-            
+            matricule = str(matricule).strip()
+
             reste_n_2 = get_col(row, COL_MAP["reste_n_2"])
             reste_n_1 = get_col(row, COL_MAP["reste_n_1"])
             reste_n = get_col(row, COL_MAP["reste_n"])
             compensation = get_col(row, COL_MAP["compensation"])
             exceptionnel = get_col(row, COL_MAP["exceptionnel"])
+            print("MAT:", matricule)
+            print("N-2:", reste_n_2, "N-1:", reste_n_1, "N:", reste_n, "Compensation:", compensation, "Exceptionnel:", exceptionnel)
 
             try:
                 personnel = Personnel.objects.get(matricule=matricule)

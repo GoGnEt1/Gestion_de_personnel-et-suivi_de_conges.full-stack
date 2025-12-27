@@ -39,14 +39,14 @@ const ImportConges: React.FC = () => {
       const contentType = response.headers.get("content-type");
       if (contentType && contentType.includes("application/json")) {
         data = await response.json();
+        setLogs(data.logs || []);
+        navigate("/dashboard/admin/list-conges");
       } else {
         const text = await response.text();
         console.error("Réponse non JSON:", text);
         setLogs(["Une erreur est survenue"]);
         return;
       }
-      setLogs(data.logs || []);
-      navigate("/dashboard/admin/list-conges");
     } catch (error) {
       console.error(error);
       setLogs(["Une erreur est survenue"]);

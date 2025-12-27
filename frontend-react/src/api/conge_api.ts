@@ -29,19 +29,17 @@ export type DemandeConge = {
 export type Conge = {
   id: number;
   annee: number;
+  matricule: string;
   conge_restant_annee_n_2: number;
   conge_restant_annee_n_1: number;
   conge_restant_annee_courante: number;
   conge_initial: number;
   conge_total: number;
   conge_exceptionnel: number;
-  conge_compasatoire: number;
+  conge_compensatoire: number;
   conge_mensuel_restant?: Record<string, number>;
-  // quota_mensuel: number;
   personnel: Personnel;
   demandes?: DemandeConge | null;
-  // fonction jours_acquis qui retour un decimal
-  jours_acquis: () => number;
 };
 
 // gestion des erreurs json

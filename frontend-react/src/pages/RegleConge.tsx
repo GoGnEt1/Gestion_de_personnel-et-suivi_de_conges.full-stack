@@ -4,6 +4,7 @@ import type { RegleCongeData } from "../api/conge_api";
 import { fetchRecentRegles, fetchAllRegles } from "../api/conge_api";
 import { motion } from "framer-motion";
 import Alert from "../components/Alert";
+import { API_URL } from "../api/http";
 
 import { useForm } from "react-hook-form";
 import Pagination from "../components/Pagination";
@@ -35,7 +36,7 @@ const RegleConge: React.FC = () => {
     const access = localStorage.getItem("access");
     if (!access) return;
 
-    fetch("http://192.168.100.13/api/conges/regle-conge/get_regle_courante/", {
+    fetch(`${API_URL}/conges/regle-conge/get_regle_courante/`, {
       headers: {
         "Content-Type": "application/json",
         Authorization: `Bearer ${access}`,
@@ -87,7 +88,7 @@ const RegleConge: React.FC = () => {
     }
     try {
       const response = await fetch(
-        "http://127.0.0.1:8000/api/conges/regle-conge/regle_form/",
+        `${API_URL}/conges/regle-conge/regle_form/`,
         {
           method: "POST",
           headers: {

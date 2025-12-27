@@ -4,6 +4,7 @@ import { motion } from "framer-motion";
 import { useTranslation } from "react-i18next";
 import type { RegleCongeData } from "../api/conge_api";
 import { useNavigate } from "react-router-dom";
+import { API_URL } from "../api/http";
 
 const RegleCongeForm: React.FC = () => {
   const [showConfirm, setShowConfirm] = useState(false);
@@ -22,7 +23,7 @@ const RegleCongeForm: React.FC = () => {
   } = useForm<RegleCongeData>();
 
   useEffect(() => {
-    fetch("http://127.0.0.1:8000/api/conges/regle-conge/get_regle_courante/", {
+    fetch(`${API_URL}/conges/regle-conge/get_regle_courante/`, {
       headers: {
         "Content-Type": "application/json",
         Authorization: `Bearer ${localStorage.getItem("access")}`,
@@ -61,7 +62,7 @@ const RegleCongeForm: React.FC = () => {
 
     try {
       const response = await fetch(
-        "http://127.0.0.1:8000/api/conges/regle-conge/regle_form/",
+        `${API_URL}/conges/regle-conge/regle_form/`,
         {
           method: "POST",
           headers: {
@@ -184,7 +185,6 @@ const RegleCongeForm: React.FC = () => {
         )}
       </motion.main>
     </section>
-    // </div>
   );
 };
 

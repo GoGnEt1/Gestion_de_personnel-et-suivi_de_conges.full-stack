@@ -79,7 +79,7 @@ const PersonnelCongeDetails: React.FC = () => {
       ),
     ],*/
 
-    ["conge_compasatoire", conge.conge_compasatoire],
+    ["conge_compasatoire", conge.conge_compensatoire],
     ["conge_exceptionnel", conge.conge_exceptionnel],
   ];
 

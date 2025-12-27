@@ -14,7 +14,7 @@ from django.conf import settings
 from django.core.mail import send_mail
 
 from staf_manag.utils.email_utils import send_html_email
-from staf_manag.utils.conges import to_decimal
+from staf_manag.utils.conges import to_decimal, COL_MAP, detect_header_row, safe_value, normalize, get_col
 
 
 # from .pagination import StandardReesultatsSetPagination
@@ -27,75 +27,6 @@ from staf_manag.pandas_import import lire_docx, parse_date
 
 import pandas as pd
 
-""""
-def importer_conges(request):
-    if request.method == 'POST':
-        form = UploadFileForm(request.POST, request.FILES)
-        if form.is_valid():
-            fichier = request.FILES["fichier"]
-            extension = fichier.name.split(".")[-1].lower()
-
-            try:
-                last_n_rows = None
-                last_n_rows_str = request.POST.get('last_n_rows')
-                if last_n_rows_str and last_n_rows_str.isdigit():
-                    last_n_rows = int(last_n_rows_str)
-
-                if extension in ["xlsx", "xls"]:
-                    df = pd.read_excel(fichier)
-                    if last_n_rows:
-                        df = df.tail(last_n_rows)
-
-                elif extension == 'docx':
-                    df = lire_docx(fichier)
-                    if last_n_rows:
-                        df = df[-last_n_rows:]
-                else:
-                    messages.error(request, "Format non supporté.")
-                    return render(request, 'import.html', {"form": form})
-                
-                nb_insert = 0
-                n = len(df)
-                for _,row in df.iterrows():
-                    matricule = str(row['matricule']).strip()
-                    if not matricule:
-                        continue
-
-                    try:
-                        personnel = Personnel.objects.get(matricule=matricule)
-                    except Personnel.DoesNotExist:
-                        continue
-                    except Exception as e:
-                        continue
-
-                    try:
-                        # Créez un nouvel objet Conge
-                        conge = Conge(
-                            personnel=personnel,
-                            annee=datetime.now().year,
-                            conge_initial=row['conge_initial'],
-                            conge_restant_annee_courante=row['conge_initial'] or conge.conge_restant_annee_courante,
-                            conge_restant_annee_n_1=row['conge_restant_annee_n_1'] or conge.conge_restant_annee_n_1,
-                            conge_restant_annee_n_2=row['conge_restant_annee_n_2'] or conge.conge_restant_annee_n_2,
-                            conge_total=row['conge_total'] or conge.conge_total,
-                        
-                        )
-                        conge.full_clean()
-                        conge.recalculer_total_conges()
-                        nb_insert += 1
-                    except ValidationError as e:
-                        messages.error(request, f"Erreur lors de l'importation : {e}")
-                        continue
-                    
-                messages.success(request, f"{nb_insert} congés importés avec succès sur {n} ignorés (doublons)")
-
-            except Exception as e:
-                messages.error(request, f"Erreur : {e}")
-    else:
-        form = UploadFileForm()
-    
-    return render(request, "import.html", {"form": form})
-"""
 class IsAdminUser(permissions.BasePermission):
     """
     Permission personnalisée: s'assurer que l'utilisateur est admin
@@ -157,7 +88,8 @@ class CongeViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         user = self.request.user
-        qs = Conge.objects.select_related('personnel').all().order_by('-annee')
+        today = timezone.now().date()
+        qs = Conge.objects.select_related('personnel').order_by('-annee')
 
         # si admin et un filtre personnel_id est passé -> filtrer par ce personnel
         if user.is_staff:
@@ -167,12 +99,19 @@ class CongeViewSet(viewsets.ModelViewSet):
             return qs
 
         # si utilisateur classique -> ne retourne que ses conges
-        if getattr(user, 'personnel', None):
-            return qs.filter(personnel__user=user)
+        else:
+            if hasattr(user, 'personnel'):
+                qs = qs.filter(personnel__user=user.personnel)
+            else:
+                return Conge.objects.none()
+        # recal automatique à la consultation
+        for c in qs:
+            if c.annee != today.year:
+                c.recalculer_acquisition_mensuelle(as_of=today, save=True)
 
-        return Conge.objects.none()
+        return qs
     
-    @action(detail=False, methods=['post'], permission_classes=[IsAdminUser, permissions.IsAuthenticated])
+    @action(detail=False, methods=['post'], permission_classes=[IsAdminUser])
     def import_conges(self, request):
         fichier = request.FILES.get('fichier')
         if not fichier:
@@ -181,31 +120,49 @@ class CongeViewSet(viewsets.ModelViewSet):
         # choisi un format de fichier excel "xlsx", "xls"
         extensions = fichier.name.split('.')[-1].lower()
         if extensions in ['xlsx', 'xls']:
-            df = pd.read_excel(fichier)
-            df.columns = [col.strip().lower() for col in df.columns] 
+            # df = pd.read_excel(fichier)
+            df_row = pd.read_excel(fichier, header=None)
+            header_now = detect_header_row(df_row)
+
+            df = pd.read_excel(fichier, header=header_now)
+            df.columns = [normalize(col) for col in df.columns] 
         else:
             return Response({"error": "Veuillez fournir un fichier Excel."}, status=status.HTTP_400_BAD_REQUEST)
 
         logs = []
+        annee = timezone.now().year
         for _, row in df.iterrows():
-            matricule = row['matricule'].strip()
-            reste_n_2 = row['reste_n_2']
-            reste_n_1 = row['reste_n_1']
-            reste_n = row['reste_n']
+            matricule = str(get_col(row, COL_MAP["matricule"]))
+            if not matricule or matricule.lower() == 'nan':
+                continue
+            
+            reste_n_2 = get_col(row, COL_MAP["reste_n_2"])
+            reste_n_1 = get_col(row, COL_MAP["reste_n_1"])
+            reste_n = get_col(row, COL_MAP["reste_n"])
+            compensation = get_col(row, COL_MAP["compensation"])
+            exceptionnel = get_col(row, COL_MAP["exceptionnel"])
 
             try:
                 personnel = Personnel.objects.get(matricule=matricule)
-                conge, created = Conge.objects.get_or_create(personnel=personnel, annee=timezone.now().year)
+                conge, created = Conge.objects.get_or_create(personnel=personnel, annee=annee)
 
-                reste_n_2 = reste_n_2 if reste_n_2 not in ['', None, pd.isna] else conge.conge_restant_annee_n_2
-                reste_n_1 = reste_n_1 if reste_n_1 not in ['', None, pd.isna] else conge.conge_restant_annee_n_1
-                reste_n = reste_n if reste_n not in ['', None, pd.isna] else conge.conge_restant_annee_courante
+                reste_n_2 = safe_value(reste_n_2, conge.conge_restant_annee_n_2)
+                reste_n_1 = safe_value(reste_n_1, conge.conge_restant_annee_n_1)
+                reste_n = safe_value(reste_n, conge.conge_restant_annee_courante)
+                compensation = safe_value(compensation, conge.conge_compensatoire)
+                exceptionnel = safe_value(exceptionnel, conge.conge_exceptionnel)
 
                 conge.conge_restant_annee_n_2 = to_decimal(reste_n_2)
                 conge.conge_restant_annee_n_1 = to_decimal(reste_n_1)
                 conge.conge_restant_annee_courante = to_decimal(reste_n)
+                conge.conge_compensatoire = to_decimal(compensation)
+                conge.conge_exceptionnel = (exceptionnel)
 
-                conge.recalculer_total_conges()
+                # print("Colonnes détectées :", list(df.columns))
+
+                conge.recalculer_total_conges(save=False)
+
+                conge.save()
                 logs.append(f"Congé de {matricule} pour l'annee {conge.annee} mis à jour avec success.")
             except Personnel.DoesNotExist:
                 logs.append(f"Matricule {matricule} introuvable.")
@@ -214,36 +171,63 @@ class CongeViewSet(viewsets.ModelViewSet):
 
         return Response({"logs": logs}, status=status.HTTP_200_OK)
     
+        
     @action(detail=False, methods=['post'], permission_classes=[IsAdminUser, permissions.IsAuthenticated])
     def modifier_conges(self, request):
         matricule = request.data.get('matricule')
-        reste_n_2 = request.data.get('reste_n_2')
-        reste_n_1 = request.data.get('reste_n_1')
-        reste_n = request.data.get('reste_n')
 
         if not matricule:
             return Response({"error": "Veuillez fournir un matricule."}, status=status.HTTP_400_BAD_REQUEST)
         
         try:
             personnel = Personnel.objects.get(matricule=matricule)
-            conge, created = Conge.objects.get_or_create(personnel=personnel, annee=timezone.now().year)
+            conge, _ = Conge.objects.get_or_create(
+                personnel=personnel,
+                annee=timezone.now().year
+            )
 
-            reste_n_2 = reste_n_2 if reste_n_2 not in ['', None, pd.isna] else conge.conge_restant_annee_n_2
-            reste_n_1 = reste_n_1 if reste_n_1 not in ['', None, pd.isna] else conge.conge_restant_annee_n_1
-            reste_n = reste_n if reste_n not in ['', None, pd.isna] else conge.conge_restant_annee_courante
+            fields = [
+                "conge_restant_annee_n_2",
+                "conge_restant_annee_n_1",
+                "conge_restant_annee_courante",
+                "conge_exceptionnel",
+                "conge_compensatoire",
+            ]
 
-            conge.conge_restant_annee_n_2 = to_decimal(reste_n_2)
-            conge.conge_restant_annee_n_1 = to_decimal(reste_n_1)
-            conge.conge_restant_annee_courante = to_decimal(reste_n)
-
+            for field in fields:
+                if field in request.data and request.data[field] not in ["", None]:
+                    setattr(conge, field, to_decimal(request.data[field]))
 
             conge.recalculer_total_conges()
+            conge.full_clean()
+            conge.save()
+
+            # return Response(
+            #     {"message": "Congés mis à jour avec succès"},
+            #     status=200
+            # )
             return Response({"message": f"Congé de {matricule} pour l'annee {conge.annee} mis à jour avec success."}, status=status.HTTP_200_OK)
         except Personnel.DoesNotExist:
             return Response({"error": f"Matricule {matricule} introuvable."}, status=status.HTTP_400_BAD_REQUEST)
         except Conge.DoesNotExist:
             return Response({"error": f"Congé de {matricule} pour l'annee {conge.annee} introuvable."}, status=status.HTTP_400_BAD_REQUEST)
     
+    @action(detail=False, methods=['get'], permission_classes=[IsAdminUser])
+    def personnel_by_matricule(self, request):
+        matricule = request.query_params.get("matricule")
+        if not matricule:
+            return Response(status=400)
+
+        try:
+            p = Personnel.objects.get(matricule=matricule)
+            return Response({
+                "nom_prenoms": f"{p.nom} {p.prenoms}",
+                "cin": p.cin,
+                "grade": p.grade
+            })
+        except Personnel.DoesNotExist:
+            return Response({"error": "Introuvable"}, status=404)
+
 message_list = []       
 class DemandeCongeViewSet(viewsets.ModelViewSet):
     queryset = DemandeConge.objects.all()
@@ -500,7 +484,3 @@ class DemandeCongeViewSet(viewsets.ModelViewSet):
         return Response(serializer.data)
  
     
-
-
-
-

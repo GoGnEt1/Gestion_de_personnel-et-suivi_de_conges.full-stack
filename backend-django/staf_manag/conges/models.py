@@ -44,7 +44,7 @@ class Conge(models.Model):
     conge_total = models.DecimalField(max_digits=5, decimal_places=2, default=0, editable=False)  # calculé dynamiquement
     
     conge_exceptionnel = models.IntegerField(default=6)
-    conge_compasatoire = models.DecimalField(max_digits=10, decimal_places=2, default=0.0)
+    conge_compensatoire = models.DecimalField(max_digits=10, decimal_places=2, default=0.0)
     date_maj = models.DateTimeField(auto_now=True, editable=False)
 
     conge_mensuel_restant = models.JSONField(default=dict, editable=False)
@@ -137,7 +137,9 @@ class Conge(models.Model):
         if as_of is None:
             as_of = timezone.now().date()
 
-        self.annee = as_of.year
+        # self.annee = as_of.year
+        if self.annee != as_of.year:
+            return
 
         date_aff = parse_date(getattr(self.personnel, "date_affectation", None))
         if not date_aff:
@@ -145,6 +147,10 @@ class Conge(models.Model):
 
         part = _quant(Decimal(self.conge_initial) / Decimal(12))
         mois_courant = as_of.month
+        mois_str = f"{mois_courant:02d}"
+
+        if self.conge_mensuel_restant.get(mois_str, 0) == part:
+            return
 
         result = {f"{m:02d}": Decimal("0.00") for m in range(1, 13)}
 

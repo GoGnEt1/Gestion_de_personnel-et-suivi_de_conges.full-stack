@@ -46,3 +46,75 @@ def ensure_date(d):
         return parsed
     except Exception:
         return None
+
+# new_upadate
+import pandas as pd
+def safe_value(val, default):
+    if pd.isna(val) or val in ['', None]:
+        return default
+    return val
+
+def normalize(col):
+    return (
+        str(col)
+        .strip()
+        .lower()
+        .replace("  ", " ")
+        .replace("\u200f", "")
+        .replace("\u200e", "")
+    )
+from django.utils import timezone
+
+today = timezone.now().date().year
+year_n = today
+year_n_1 = today - 1
+year_n_2 = today - 2
+
+COL_MAP = {
+    "matricule": ["matricule", "المعرف"],
+
+    "reste_n_2": [
+        f"reste de congée {year_n_2}",
+        f"الباقي من العطلة الإستراحة {year_n_2}",
+        f"الباقي من العطلة الاستراحة {year_n_2}",
+    ],
+
+    "reste_n_1": [
+        f"reste de congée {year_n_1}",
+        f"الباقي من العطلة الإستراحة {year_n_1}",
+        f"الباقي من العطلة الاستراحة {year_n_1}",
+    ],
+
+    "reste_n": [
+        f"reste de congée {year_n}",
+        f"الباقي من العطلة الإستراحة {year_n}",
+        f"الباقي من العطلة الاستراحة {year_n}",
+    ],
+
+    "compensation": [
+        "solde les heur.sup",
+        "الباقي من العطلة التعويضية",
+    ],
+
+    "exceptionnel": [
+        "solde suplémentaire",
+        f"الباقي من العطل الاستثنائية {year_n}",
+    ],
+}
+
+def detect_header_row(df):
+    for i in range(min(15, len(df))):
+        row = df.iloc[i].astype(str).str.lower()
+        if any(
+            "matricule" in cell or "المعرف" in cell
+            for cell in row
+        ):
+            return i
+    raise ValueError("Ligne d’en-tête introuvable")
+
+def get_col(row, keys):
+    for k in keys:
+        val = row.get(k)
+        if val is not None and not pd.isna(val):
+            return val
+    return None

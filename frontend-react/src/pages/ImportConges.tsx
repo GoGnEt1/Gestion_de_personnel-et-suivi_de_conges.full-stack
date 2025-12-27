@@ -3,11 +3,13 @@ import { useTranslation } from "react-i18next";
 import { FileSpreadsheet } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { FaTimes } from "react-icons/fa";
+import { API_URL } from "../api/http";
 
 const ImportConges: React.FC = () => {
   const [file, setFile] = useState<File | null>(null);
   const [logs, setLogs] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
+  const year_n = new Date().getFullYear();
 
   const { t } = useTranslation();
   const navigate = useNavigate();
@@ -26,32 +28,50 @@ const ImportConges: React.FC = () => {
     formData.append("fichier", file);
 
     try {
-      const response = await fetch(
-        "http://127.0.0.1:8000/api/conges/conges/import_conges/",
-        {
-          method: "POST",
-          headers: {
-            Authorization: `Bearer ${localStorage.getItem("access")}`,
-          },
-          body: formData,
-        }
-      );
-      const data = await response.json();
-      setLogs(data.resultats || []);
-      navigate("/dashboard/admin/conges-admin");
+      const response = await fetch(`${API_URL}/conges/import_conges/`, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("access")}`,
+        },
+        body: formData,
+      });
+      let data;
+      const contentType = response.headers.get("content-type");
+      if (contentType && contentType.includes("application/json")) {
+        data = await response.json();
+      } else {
+        const text = await response.text();
+        console.error("Réponse non JSON:", text);
+        setLogs(["Une erreur est survenue"]);
+        return;
+      }
+      setLogs(data.logs || []);
+      navigate("/dashboard/admin/list-conges");
     } catch (error) {
       console.error(error);
       setLogs(["Une erreur est survenue"]);
     }
   };
   return (
-    <section className="import flex justify-center items-center min-h-full bg-gray-50">
+    <section className="import flex flex-col gap-5 justify-center items-center min-h-full bg-gray-50">
+      <div className="mt-6 text-xs bg-blue-50 p-4 rounded-lg">
+        <p className="font-semibold mb-2">En-tête Excel obligatoire :</p>
+        <ul className="list-disc list-inside">
+          <li>المعرف</li>
+          <li>الباقي من العطلة الإستراحة {year_n}</li>
+          <li>الباقي من العطلة الإستراحة {year_n - 1}</li>
+          <li>الباقي من العطلة الإستراحة {year_n - 2}</li>
+          <li>الباقي من العطلة التعويضية</li>
+          <li>الباقي من العطل الاستثنائية {year_n}</li>
+        </ul>
+      </div>
+
       <div className="p-6 pl-10 max-w-sm w-full mx-auto bg-white shadow-xl rounded-2xl">
         <h2 className="text-xl font-semibold mb-8 flex items-center gap-5">
           <FileSpreadsheet className="h-5 w-5 text-green-600" />
           {t("importConges.title")}
           <FaTimes
-            className="text-lg absolute top-72 right-40 xl:right-126 cursor-pointer hover:text-red-500 transition-colors duration-500 ease-in-out"
+            className="text-lg ml-2 cursor-pointer hover:text-red-500 transition-colors duration-500 ease-in-out"
             onClick={() => window.history.back()}
             title={t("close")}
           />

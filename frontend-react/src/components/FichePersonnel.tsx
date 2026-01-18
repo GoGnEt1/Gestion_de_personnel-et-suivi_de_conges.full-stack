@@ -3,6 +3,7 @@ import type { Personnel } from "../types/personnel";
 import { useTranslation } from "react-i18next";
 import jsPDF from "jspdf";
 import html2canvas from "html2canvas-pro";
+import tusia from "../assets/logo_fsg-removebg-preview.png";
 
 type FicheProps = {
   personnel: Personnel | null;
@@ -85,9 +86,9 @@ const FichePersonnel: React.FC<FicheProps> = ({ personnel }) => {
         {/* En-tête */}
         <div className="flex justify-between items-center gap-20 text-sm mb-4">
           <img
-            src="/src/assets/logo_fsg-removebg-preview.png"
+            src={tusia}
             alt="logo_tunisie"
-            className="h-18 ml-auto border-none"
+            className="h-20 w-30 ml-auto border-none"
           />
           <div className="text-center max-w-72">
             <p className="font-semibold">{t("minisTuni")}</p>

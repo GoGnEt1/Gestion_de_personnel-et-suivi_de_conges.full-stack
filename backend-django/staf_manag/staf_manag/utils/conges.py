@@ -113,6 +113,8 @@ COL_MAP = {
     ],
 }
 
+# NORMALIZED_COL_MAP = normalize_map(COL_MAP)
+
 def detect_header_row(df):
     for i in range(min(15, len(df))):
         row = df.iloc[i].astype(str).str.lower()
@@ -130,3 +132,15 @@ def get_col(row, keys):
             if val is not None and not pd.isna(val):
                 return val
     return None
+
+def fill_conge_from_row(row, conge):
+    for field, headers in COL_MAP.items():
+        for h in headers:
+            if h in row.index:
+                val = row.get(h)
+                if pd.notna(val) and str(val).strip() != "":
+                    try:
+                        setattr(conge, field, to_decimal(val))
+                    except Exception:
+                        pass  # ou logger l’erreur
+                break

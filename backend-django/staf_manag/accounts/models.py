@@ -38,7 +38,7 @@ class CustomUser(AbstractBaseUser, PermissionsMixin):
      
      #  localisation du personnel
     adresse = models.CharField(max_length=255, blank=True, null=True)
-    ville = models.CharField(max_length=255, blank=True, null=True)
+    ville = models.CharField(max_length=255, blank=True, null=True, default='Gabès')
     pays = models.CharField(max_length=255, default='Tunisie', blank=True, null=True)
     code_postal = models.IntegerField(blank=True, null=True)
     telephone_mobile = models.CharField(max_length=30, blank=True, null=True)
@@ -47,7 +47,7 @@ class CustomUser(AbstractBaseUser, PermissionsMixin):
     lieu_naissance = models.CharField(max_length=255, blank=True, null=True)
     niveau_etudes = models.CharField(max_length=255, blank=True, null=True)
     certificats_academiques = models.TextField(blank=True, null=True)
-    nationalite = models.CharField(max_length=255, blank=True, null=True)
+    nationalite = models.CharField(max_length=255, blank=True, null=True, default='Tunisienne')
 
     situation_familiale = models.CharField(max_length=50, choices=SITUATION_FAMILIALE_CHOICE, blank=True,null=True)
     nombre_enfants = models.IntegerField(blank=True, null=True)

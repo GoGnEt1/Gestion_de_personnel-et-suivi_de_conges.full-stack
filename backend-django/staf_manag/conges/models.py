@@ -9,7 +9,7 @@ from django.core.exceptions import ValidationError as DjangoValidationError
 
 import re
 from datetime import date
-from staf_manag.utils.conges import mois_de_travail, to_decimal
+from staf_manag.utils.conges import to_decimal
 from staf_manag.pandas_import import parse_date
 
 def get_lock_minutes():
@@ -36,18 +36,18 @@ class RegleConge(models.Model):
    
 class Conge(models.Model):
     personnel = models.ForeignKey(Personnel, on_delete=models.CASCADE, related_name='conges')
-    annee = models.IntegerField(editable=False) # annee courant déterminé dynamiquement 
-    conge_restant_annee_n_2 = models.DecimalField(max_digits=5, decimal_places=2, default=0, editable=False) # annee courant - 2
-    conge_restant_annee_n_1 = models.DecimalField(max_digits=5, decimal_places=2, default=0, editable=False) # annee courant - 1 
-    conge_restant_annee_courante = models.DecimalField(max_digits=5, decimal_places=2, default=0, editable=False)
+    annee = models.IntegerField() # annee courant déterminé dynamiquement 
+    conge_restant_annee_n_2 = models.DecimalField(max_digits=5, decimal_places=2, default=0) # annee courant - 2
+    conge_restant_annee_n_1 = models.DecimalField(max_digits=5, decimal_places=2, default=0) # annee courant - 1 
+    conge_restant_annee_courante = models.DecimalField(max_digits=5, decimal_places=2, default=0)
     conge_initial = models.IntegerField(default=0)  # 45 ou 72, selon le grade
-    conge_total = models.DecimalField(max_digits=5, decimal_places=2, default=0, editable=False)  # calculé dynamiquement
+    conge_total = models.DecimalField(max_digits=5, decimal_places=2, default=0)  # calculé dynamiquement
     
     conge_exceptionnel = models.IntegerField(default=6)
-    conge_compensatoire = models.DecimalField(max_digits=10, decimal_places=2, default=0.0)
-    date_maj = models.DateTimeField(auto_now=True, editable=False)
+    conge_compensatoire = models.DecimalField(max_digits=5, decimal_places=2, default=0.0)
+    date_maj = models.DateTimeField(auto_now=True)
 
-    conge_mensuel_restant = models.JSONField(default=dict, editable=False)
+    conge_mensuel_restant = models.JSONField(default=dict, blank=True, null=True)
     class Meta:
         unique_together = ('personnel', 'annee') # Un seul état de conges par personnel et par année
         ordering = ['-annee'] # ordonner par annee decroissante
@@ -57,18 +57,19 @@ class Conge(models.Model):
 
     
     def initialiser(self):
-        self.annee = timezone.now().year
+        if not self.annee:
+            self.annee = timezone.now().year
+
         if not self.conge_initial:
             self.conge_initial = self.get_default_conge_initial()
 
         self.conge_exceptionnel = 6
-        self.conge_restant_annee_n_1 = to_decimal(self.get_conge_restant(self.annee - 1))
-        self.conge_restant_annee_n_2 = to_decimal(self.get_conge_restant(self.annee - 2))
+        # self.conge_restant_annee_n_2 = to_decimal(self.get_conge_restant(self.annee - 2))
+        self.conge_restant_annee_courante = to_decimal(self.conge_initial)
 
         total = to_decimal(self.conge_initial)
         if total <= 0:
             self.conge_mensuel_restant = {f"{m:02d}": 0.0 for m in range(1, 13)}
-            self.conge_restant_annee_courante = Decimal("0.00")
             return
 
         part = _quant(total / Decimal(12))
@@ -80,22 +81,17 @@ class Conge(models.Model):
         months = [f"{m:02d}" for m in range(1, 13)]
         result = {m: Decimal("0.00") for m in months}
 
-        if date_aff and date_aff.year == self.annee:
-            mois_debut = date_aff.month
-            mois_courant = today.month
-            months_to_fill = [f"{m:02d}" for m in range(mois_debut, mois_courant + 1)]
-        elif date_aff and date_aff.year < self.annee:
-            mois_courant = today.month
-            months_to_fill = [f"{m:02d}" for m in range(1, mois_courant + 1)]
-        else:
-            months_to_fill = []
+        if date_aff:
+            if date_aff.year == self.annee:
+                months_to_fill = [f"{m:02d}" for m in range(date_aff.month, today.month + 1)]
+            elif date_aff and date_aff.year < self.annee:
+                months_to_fill = [f"{m:02d}" for m in range(1, today.month + 1)]
+            else:
+                months_to_fill = []
 
-        # remplir par parts
-        for m in months_to_fill:
-            result[m] = part
-
-        # somme des acquis
-        self.conge_restant_annee_courante = sum(result[m] for m in months_to_fill)
+            # remplir par parts
+            for m in months_to_fill:
+                result[m] = part
 
         # stocker en JSON
         self.conge_mensuel_restant = {k: float(v or 0.0) for k, v in result.items()}
@@ -127,8 +123,6 @@ class Conge(models.Model):
             to_decimal(self.conge_restant_annee_n_2) +
             to_decimal(self.conge_restant_annee_courante)
         )
-        # quantize le reultat
-        # self.conge_total = to_decimal(self.conge_total)
         
         if save: 
             self.save()
@@ -149,7 +143,7 @@ class Conge(models.Model):
         mois_courant = as_of.month
         mois_str = f"{mois_courant:02d}"
 
-        if self.conge_mensuel_restant.get(mois_str, 0) == part:
+        if to_decimal(self.conge_mensuel_restant.get(mois_str, 0)) == part:
             return
 
         result = {f"{m:02d}": Decimal("0.00") for m in range(1, 13)}
@@ -166,7 +160,7 @@ class Conge(models.Model):
             result[f"{m:02d}"] = part
 
         self.conge_mensuel_restant = {k: float(v) for k, v in result.items()}
-        self.conge_restant_annee_courante = sum(result.values())
+        # self.conges_acquis = sum(result.values())
 
         self.recalculer_total_conges(save=False)
 
@@ -191,50 +185,33 @@ class Conge(models.Model):
         if grade and re.search(r'technicien(ne)?', grade, re.IGNORECASE) or re.search(r'assistant(e)?', grade, re.IGNORECASE):
             return regle.conge_initial_tech
         return regle.conge_initial_autres
-    
-    def get_conge_restant(self, annee_cible):
-        if self.personnel.date_affectation and self.personnel.date_affectation.year > annee_cible:
-            return 0
-        
-        # Rechercher le congé existant pour cette année
-        ancien_conge = Conge.objects.filter(personnel=self.personnel, annee=annee_cible).order_by('-id').first()
 
-        if ancien_conge:
-            return ancien_conge.conge_restant_annee_courante
-        return 0
-    
-    def jours_acquis(self, as_of: date = None) -> Decimal:
-        """Nombre de jours de congés acquis au jours as_of (par defaut aujourd'hui)
-        utilise le quota mensuel = conge_initial / 12, et multiplie par le nombre de mois 
-        de travail depuis la date d'affectation
-        """
-        if as_of is None:
-            as_of_date = date.today()
-        else:
-            as_of_date = parse_date(as_of)
-            if as_of_date is None:
-                return Decimal('0.00')
-        
-        date_aff = self.personnel.date_affectation
-        date_aff = parse_date(date_aff) if date_aff is not None else None
-        if not date_aff or date_aff > as_of_date:
-            return Decimal('0.00')
-        
-        mois_courant = mois_de_travail(date_aff, as_of_date)
-        quota_mensuel = Decimal(str(self.get_default_conge_initial())) / Decimal('12')
-        
-        result = _quant(quota_mensuel * Decimal(mois_courant))
+    def rollover_to_new_year(self, new_year: int):
+        if self.annee >= new_year:
+            return
 
-        return result
+        # déplacer les soldes
+        self.conge_restant_annee_n_2 = self.conge_restant_annee_n_1
+        self.conge_restant_annee_n_1 = self.conge_restant_annee_courante
 
-    def prelement_conges(self, montant: Decimal, as_of: date = None) -> Decimal:
+        # reset année courante
+        self.annee = new_year
+        self.conge_exceptionnel = 6
+        self.conge_compensatoire = Decimal("0.00")
+        self.conge_restant_annee_courante = Decimal("0.00")
+        self.conge_mensuel_restant = {}
+
+        # recalculer les acquisitions mensuelles
+        self.initialiser()
+        self.save()
+
+    def prelement_conges(self, montant: Decimal, as_of: date = None):
         """
         Débite `amount` jours du solde disponible en suivant l'ordre:
         1. Les conges restants de l'annee n-2
         2. Les conges restants de l'annee n-1
         3. Les conges restants mensuels de l'annee courante (des mois anterieurs au mois de la demande)
         4. Les conges exceptionnels de l'annee courante
-        Retourne la valeur restante (Decimal)
         Modifie et sauvegarde self mais sans self.save() 
         """
         if as_of is None:
@@ -244,24 +221,19 @@ class Conge(models.Model):
             return Decimal('0.00')
         
         # 1. Les conges restants de l'annee n-2
-        n2 = to_decimal(self.conge_restant_annee_n_2)
-        if n2 > 0:
-            debit = min(montant, n2)
-            self.conge_restant_annee_n_2 = _quant(n2 - debit)
-            montant = montant - debit
-
         # 2. Les conges restants de l'annee n-1
-        if montant > 0:
-            n1 = to_decimal(self.conge_restant_annee_n_1)
-            if n1 > 0:
-                debit = min(montant, n1)
-                self.conge_restant_annee_n_1 = _quant(n1 - debit)
-                montant = montant - debit
+        for n_ in ["conge_restant_annee_n_2", "conge_restant_annee_n_1"]:
+            if montant <= 0:
+                break
+            solde = to_decimal(getattr(self, n_))
+            debit = min(montant, solde)
+            setattr(self, n_, _quant(solde - debit))
+            montant = montant - debit
 
         # 3. Les conges restants mensuels de l'annee courante (des mois anterieurs au mois de la demande)
         if montant > 0:
             mois_limit = int(as_of.month)
-            for m in range(1, mois_limit):
+            for m in range(1, mois_limit + 1):
                 if montant <= 0:
                     break
                 key = f'{m:02d}'
@@ -272,24 +244,20 @@ class Conge(models.Model):
                 debit = min(montant, available)
                 new_val = _quant(available - debit)
                 self.conge_mensuel_restant[key] = float(new_val)
-                montant = montant - debit
                 # décrémenter le conge restant de l'annee courante
                 self.conge_restant_annee_courante = _quant(to_decimal(self.conge_restant_annee_courante) - debit)
+                montant = montant - debit
 
         # 4. Les conges exceptionnels de l'annee courante
         if montant > 0:
             exceptionnel = to_decimal(self.conge_exceptionnel)
             if exceptionnel > 0:
                 debit = min(montant, exceptionnel)
-                # self.conge_exceptionnel = _quant(exceptionnel - debit)
                 self.conge_exceptionnel = int(exceptionnel - debit)
                 montant = montant - debit
 
         # Après prélèvements, recalculer conge total sans save
         self.recalculer_total_conges(save=False)
-        # s'assurer que les valeurs de conges mensuels sont des floats serializables en json
-        self.conge_mensuel_restant = {k: float(v) for k, v in (self.conge_mensuel_restant or {}).items()}
-        return _quant(montant)
 
 # Models Demande Congé à créer
 class DemandeConge(models.Model):
@@ -301,10 +269,10 @@ class DemandeConge(models.Model):
     
     personnel = models.ForeignKey(Personnel, on_delete=models.CASCADE, related_name='demandes_conges')
     conge = models.ForeignKey(Conge, on_delete=models.CASCADE, related_name='demandes')
-    annee = models.IntegerField(editable=False, default=timezone.now().year)
+    annee = models.IntegerField()
     conge_demande = models.PositiveIntegerField(default=0, blank=True, null=True) # PositiveIntegerField empêche les entiers négatifs
     debut_conge = models.DateField(null=True, blank=True)
-    periode = models.CharField(max_length=100, blank=True, null=True, editable=False)  # exemple : "12/05/2025 - 22/05/2025"
+    periode = models.CharField(max_length=100, blank=True, null=True)  # exemple : "12/05/2025 - 22/05/2025"
     statut = models.CharField(max_length=20, choices=STATUT_CHOICES, default='en_attente')
     motif = models.TextField(blank=True, null=True)
     date_soumission = models.DateTimeField(auto_now_add=True, editable=False)
@@ -333,37 +301,33 @@ class DemandeConge(models.Model):
             return DjangoValidationError({'conge_demande': 'Le nombre de jours demandé doit être supérieur a 0'})
         
         #  on locke la demande de conge pour la sécurité
-        # with transaction.atomic():
         demande = DemandeConge.objects.select_for_update().get(pk=self.pk)
         conge = Conge.objects.select_for_update().get(pk=demande.conge.pk)
 
-        #  calculer droit acquis à la date de soumission
         as_of = parse_date(self.debut_conge) if self.debut_conge else timezone.now()
-        droit_acquis = to_decimal(conge.jours_acquis(as_of=as_of))
 
         #  calculer restes mensuels jusqu' avant prélèvement
         mois_debut = as_of.month
+        print(mois_debut)
         restes_mensuels = Decimal('0.00')
-        for m in range(1, mois_debut):
+        for m in range(1, mois_debut + 1):
             key=f"{m:02d}"
             restes_mensuels += to_decimal(conge.conge_mensuel_restant.get(key, 0))
 
+        print(restes_mensuels)
         total_dispo = (
             to_decimal(conge.conge_restant_annee_n_2) +
             to_decimal(conge.conge_restant_annee_n_1) +
-            restes_mensuels +
-            droit_acquis
-            # + to_decimal(conge.conge_exceptionnel)
+            restes_mensuels
+            # droit_acquis
+            + to_decimal(conge.conge_exceptionnel)
             )
-        
+        print(total_dispo)
         if demande_jours > total_dispo:
             raise DjangoValidationError({ "conge_demande_non_valide": f"Solde de congé insuffisant. Il ne reste que {total_dispo} jours de congés." })
 
         #  prélèvement de conges
-        reste = conge.prelement_conges(demande_jours, as_of=as_of)
-
-        if reste > 0:
-            raise DjangoValidationError({ "conge_demande_non_valide": f"Solde de congé insuffisant. Il ne reste que {reste} jours de congés. Reste non prélèvables." })
+        conge.prelement_conges(demande_jours, as_of=as_of)
 
         demande.statut = 'valide'
         demande.date_validation = timezone.now()
@@ -380,7 +344,11 @@ class DemandeConge(models.Model):
 
 
     def save(self, *args, **kwargs):
-        
+        #  mettre à jour l'année 
+        new_year = self.debut_conge.year
+        if not self.annee or new_year != self.annee:
+            self.annee = new_year
+            
          # Gestion de la période à partir de la date_debut
         if self.debut_conge and self.conge_demande and self.conge_demande > 0:
             fin_conge = self.debut_conge + timedelta(days = self.conge_demande - 1)
@@ -392,6 +360,7 @@ class DemandeConge(models.Model):
     def clean(self):
         super().clean()
         errors = {}
+
         # si une demande est faite, alors debut_conge doit être rempli
         if (self.conge_demande or 0) > 0 and not self.debut_conge: #and self.conge_demande != 0
             errors["debut_conge"] = "Le champ 'debut_conge' est requis si 'conge_demande' est différent de zéro"
@@ -424,27 +393,6 @@ class DemandeConge(models.Model):
                     errors["demande interdite"] = "Un congé validé se termine avant ou le début de cette nouvelle demande pour ce personnel."
             except ValueError:
                 pass
-        
-        # verifier le solde disponible avant d'enregistrer la demande
-        conge = self.conge
-        quota_acquis = to_decimal(conge.jours_acquis())
-        deja_utilises = to_decimal(sum(
-            d.conge_demande for d in DemandeConge.objects.filter(
-                personnel=self.personnel,
-                statut='valide',
-                annee=self.annee
-            ).exclude(id=self.id)
-        ))
-        
-        dispo_mensuel = quota_acquis - deja_utilises
-        dispo_total = (
-            to_decimal(dispo_mensuel) +
-            to_decimal(conge.conge_restant_annee_n_1) +
-            to_decimal(conge.conge_restant_annee_n_2)
-        )
-        if self.conge_demande > dispo_total:
-            errors["conge_demande_non_valide"] = f"Solde de congé insuffisant. Il ne reste que {dispo_total} jours de congés."
-
         if errors:
             raise DjangoValidationError(errors)    
     

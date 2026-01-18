@@ -4,10 +4,10 @@ import type { RegleCongeData } from "../api/conge_api";
 import { fetchRecentRegles, fetchAllRegles } from "../api/conge_api";
 import { motion } from "framer-motion";
 import Alert from "../components/Alert";
-import { API_URL } from "../api/http";
 
 import { useForm } from "react-hook-form";
 import Pagination from "../components/Pagination";
+import { API_URL } from "../api/http";
 
 const RegleConge: React.FC = () => {
   const [regleConge, setRegleConge] = useState<RegleCongeData[]>([]);

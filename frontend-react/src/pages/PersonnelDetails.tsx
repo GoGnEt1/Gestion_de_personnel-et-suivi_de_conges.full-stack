@@ -3,7 +3,29 @@ import { motion } from "framer-motion";
 import { useTranslation } from "react-i18next";
 import type { Personnel } from "../types/personnel";
 import axiosClient from "../api/axiosClient";
-import { Settings } from "lucide-react";
+import {
+  Settings,
+  User,
+  IdCard,
+  Globe,
+  MapPin,
+  Mail,
+  Phone,
+  Briefcase,
+  Calendar,
+  GraduationCap,
+  School,
+  Landmark,
+  Info,
+  Folders,
+  FileText,
+  Building2,
+  ShieldCheck,
+  Locate,
+  Barrel,
+  ShieldX,
+  CalendarPlus,
+} from "lucide-react";
 import { useAuth } from "../context/useAuth";
 import { slugify } from "../utils/slugify";
 import { useParams, useNavigate } from "react-router-dom";
@@ -12,8 +34,24 @@ import FichePersonnel from "../components/FichePersonnel";
 
 import PersonnelMedia from "../components/PersonnelMedia";
 
+const InfoRow = ({
+  icon: Icon,
+  label,
+  value,
+}: {
+  // icon: React.ReactNode;
+  icon: React.ComponentType<{ className?: string }>;
+  label: string;
+  value?: React.ReactNode;
+}) => (
+  <div className="flex items-center gap-3 text-sm text-gray-700">
+    <Icon className="w-4 h-4 font-semibold" />
+    <strong>{label} :</strong>
+    <span className="font-medium -ml-1">{value}</span>
+  </div>
+);
+
 const PersonnelDetails: React.FC = () => {
-  // const PersonnelDetails: React.FC<{ isMe?: boolean }> = ({ isMe = false }) => {
   const [personnel, setPersonnel] = useState<Personnel | null>(null);
   const { t } = useTranslation();
 
@@ -95,7 +133,6 @@ const PersonnelDetails: React.FC = () => {
               <div className="w-32 h-32 rounded-full overflow-hidden border border-gray-400">
                 {personnel.photo ? (
                   <img
-                    //   src="/src/assets/profile.jpg"
                     src={personnel.photo}
                     alt={personnel.prenoms}
                     className="w-full h-full object-cover"
@@ -113,51 +150,53 @@ const PersonnelDetails: React.FC = () => {
                 {personnel.nom?.toUpperCase()}
               </h2>
 
-              <div className="mt-3 text-sm text-gray-500">
-                <div className="flex items-center gap-2">
-                  <span
-                    className={`inline-block h-2 w-2 rounded-full ${
-                      personnel.is_active ? "bg-green-500" : "bg-red-500"
-                    }`}
-                  ></span>
-                  <span className="font-medium text-gray-700">
-                    {personnel.is_active
-                      ? t("personnel.actif")
-                      : t("personnel.inactif")}
-                  </span>
-                </div>
+              <div className="mt-3 text-sm gap-2 items-center">
+                {personnel.is_active ? (
+                  <div className="flex items-center gap-2">
+                    <ShieldCheck className="text-green-500 w-4 h-4" />
+                    <span className="font-medium text-gray-700">
+                      {t("personnel.actif")}
+                    </span>
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-2">
+                    <ShieldX className="text-red-500 w-4 h-4" />
+                    <span className="font-medium text-gray-700">
+                      {t("personnel.inactif")}
+                    </span>
+                  </div>
+                )}
               </div>
 
               <div className="mt-4 w-full text-left flex flex-col gap-3">
-                <p className="text-sm text-gray-500">
-                  <strong>
-                    {t("personnel.grade")}
-                    {" : "}{" "}
-                  </strong>{" "}
-                  {personnel.grade?.charAt(0).toUpperCase() +
-                    (personnel.grade?.slice(1).toLowerCase() || "")}
-                </p>
-                <p className="text-sm text-gray-500">
-                  <strong>
-                    {t("personnel.role")}
-                    {" : "}{" "}
-                  </strong>{" "}
-                  {personnel.role ? personnel.role : "non_renseigne"}
-                </p>
-                <p className="text-sm text-gray-500">
-                  <strong>
-                    {t("personnel.specialite")}
-                    {" : "}{" "}
-                  </strong>{" "}
-                  {personnel.specialite}
-                </p>
-                <p className="text-sm text-gray-500">
-                  <strong>
-                    {t("personnel.ecole_origine")}
-                    {" : "}{" "}
-                  </strong>{" "}
-                  {personnel.ecole_origine}
-                </p>
+                {personnel.grade && (
+                  <InfoRow
+                    icon={Landmark}
+                    label={t("personnel.grade")}
+                    value={personnel.grade}
+                  />
+                )}
+                {personnel.role && (
+                  <InfoRow
+                    icon={User}
+                    label={t("personnel.role")}
+                    value={personnel.role}
+                  />
+                )}
+                {personnel.specialite && (
+                  <InfoRow
+                    icon={GraduationCap}
+                    label={t("personnel.specialite")}
+                    value={personnel.specialite}
+                  />
+                )}
+                {personnel.ecole_origine && (
+                  <InfoRow
+                    icon={Building2}
+                    label={t("personnel.ecole_origine")}
+                    value={personnel.ecole_origine}
+                  />
+                )}
 
                 <hr className="border-gray-400" />
 
@@ -195,35 +234,38 @@ const PersonnelDetails: React.FC = () => {
                   <button
                     onClick={() => setActiveTab("info")}
                     type="button"
-                    className={`py-2 px-3 ${
+                    className={`py-2 px-3 flex items-center gap-2 ${
                       activeTab === "info"
                         ? "text-blue-600 border-b-2 border-blue-500"
                         : "text-gray-600"
                     }`}
                   >
+                    <Info className="w-5 h-5" />
                     {t("personnel.infoGenerale")}
                   </button>
                   <button
                     onClick={() => setActiveTab("medias")}
                     type="button"
-                    className={`py-2 px-3 ${
+                    className={`py-2 px-3 flex items-center gap-2 ${
                       activeTab === "medias"
                         ? "text-blue-600 border-b-2 border-blue-500"
                         : "text-gray-600"
                     }`}
                   >
+                    <Folders className="w-5 h-5" />
                     {t("personnel.medias")}
                   </button>
                   {user?.is_staff && (
                     <button
                       onClick={() => setActiveTab("fiche")}
                       type="button"
-                      className={`py-2 px-3 ${
+                      className={`py-2 px-3 flex items-center gap-2 ${
                         activeTab === "fiche"
                           ? "text-blue-600 border-b-2 border-blue-500"
                           : "text-gray-600"
                       }`}
                     >
+                      <FileText className="w-5 h-5" />
                       {t("personnel.fiche")}
                     </button>
                   )}
@@ -238,50 +280,39 @@ const PersonnelDetails: React.FC = () => {
                         <h3 className="text-lg font-semibold mb-3 border-b pb-2 border-gray-300">
                           {t("personnel.infoPersonnelle")}
                         </h3>
-                        <div className="space-y-2 text-sm text-gray-700">
-                          <p>
-                            <strong>
-                              {t("personnel.prenom")} {" : "}{" "}
-                            </strong>{" "}
-                            {personnel.prenoms}
-                          </p>
-                          <p>
-                            <strong>
-                              {t("personnel.nom")}
-                              {" : "}{" "}
-                            </strong>{" "}
-                            {personnel.nom}
-                          </p>
-                          <p>
-                            <strong>
-                              {t("personnel.cin")}
-                              {" : "}{" "}
-                            </strong>{" "}
-                            {personnel.cin}
-                          </p>
-                          <p>
-                            <strong>
-                              {t("matricule")}
-                              {" : "}{" "}
-                            </strong>{" "}
-                            {personnel.matricule}
-                          </p>
-                          <p>
-                            <strong>
-                              {t("personnel.nationalite")}
-                              {" : "}{" "}
-                            </strong>{" "}
-                            {personnel.nationalite}
-                          </p>
+                        <div className="space-y-3">
+                          <InfoRow
+                            icon={User}
+                            label={t("names")}
+                            value={personnel.prenoms + " " + personnel.nom}
+                          />
+                          <InfoRow
+                            icon={IdCard}
+                            label={t("personnel.cin")}
+                            value={personnel.cin}
+                          />
+                          <InfoRow
+                            icon={IdCard}
+                            label={t("matricule")}
+                            value={personnel.matricule}
+                          />
+                          <InfoRow
+                            icon={Globe}
+                            label={t("personnel.nationalite")}
+                            value={personnel.nationalite}
+                          />
                           {personnel.birthday && (
-                            <p>
-                              <strong>
-                                {t("personnel.birthday")}
-                                {" : "}{" "}
-                              </strong>{" "}
-                              {new Date(`${personnel.birthday}`).toDateString()}{" "}
-                              {" à "} {personnel.lieu_naissance}
-                            </p>
+                            <InfoRow
+                              icon={Calendar}
+                              label={t("personnel.birthday")}
+                              value={
+                                new Date(
+                                  `${personnel.birthday}`
+                                ).toDateString() +
+                                " à " +
+                                personnel.lieu_naissance
+                              }
+                            />
                           )}
                         </div>
                       </div>
@@ -292,61 +323,54 @@ const PersonnelDetails: React.FC = () => {
                         <h3 className="text-lg font-semibold mb-2 border-b pb-2 border-gray-300">
                           {t("personnel.infoProfessionnelle")}
                         </h3>
-                        <div className="space-y-2 text-sm text-gray-700">
-                          <p>
-                            <strong>
-                              {t("personnel.grade")}
-                              {" : "}{" "}
-                            </strong>{" "}
-                            {personnel.grade?.charAt(0).toUpperCase() +
-                              (personnel.grade?.slice(1).toLowerCase() || "")}
-                          </p>
-                          <p>
-                            <strong>
-                              {t("personnel.specialite")}
-                              {" : "}{" "}
-                            </strong>{" "}
-                            {personnel.specialite}
-                          </p>
+                        <div className="space-y-3">
+                          {personnel.grade && (
+                            <InfoRow
+                              icon={Landmark}
+                              label={t("personnel.grade")}
+                              value={
+                                personnel.grade?.charAt(0).toUpperCase() +
+                                (personnel.grade?.slice(1).toLowerCase() || "")
+                              }
+                            />
+                          )}
+                          {personnel.specialite && (
+                            <InfoRow
+                              icon={GraduationCap}
+                              label={t("personnel.specialite")}
+                              value={personnel.specialite}
+                            />
+                          )}
                           {personnel.niveau_etudes && (
-                            <p>
-                              <strong>
-                                {t("personnel.niveau_etudes")}
-                                {" : "}{" "}
-                              </strong>{" "}
-                              {personnel.niveau_etudes}
-                            </p>
+                            <InfoRow
+                              icon={School}
+                              label={t("personnel.niveau_etudes")}
+                              value={personnel.niveau_etudes}
+                            />
                           )}
+
                           {personnel.certificats_academiques && (
-                            <p>
-                              <strong>
-                                {t("personnel.certificats_academiques")}
-                                {" : "}{" "}
-                              </strong>{" "}
-                              {personnel.certificats_academiques}
-                            </p>
+                            <InfoRow
+                              icon={Briefcase}
+                              label={t("personnel.certificats_academiques")}
+                              value={personnel.certificats_academiques}
+                            />
                           )}
-                          <p>
-                            <strong>
-                              {t("personnel.ecole_origine")}
-                              {" : "}{" "}
-                            </strong>{" "}
-                            {personnel.ecole_origine}
-                          </p>
-                          <p>
-                            <strong>
-                              {t("personnel.date_affectation")}
-                              {" : "}{" "}
-                            </strong>{" "}
-                            {personnel.date_affectation}
-                          </p>
-                          <p>
-                            <strong>
-                              {t("personnel.date_passage_grade")}
-                              {" : "}{" "}
-                            </strong>{" "}
-                            {personnel.date_passage_grade || "-"}
-                          </p>
+                          <InfoRow
+                            icon={Building2}
+                            label={t("personnel.ecole_origine")}
+                            value={personnel.ecole_origine || "FSG"}
+                          />
+                          <InfoRow
+                            icon={Calendar}
+                            label={t("personnel.date_affectation")}
+                            value={personnel.date_affectation}
+                          />
+                          <InfoRow
+                            icon={CalendarPlus}
+                            label={t("personnel.date_passage_grade")}
+                            value={personnel.date_passage_grade || "-"}
+                          />
                         </div>
                       </div>
                     </div>
@@ -356,28 +380,26 @@ const PersonnelDetails: React.FC = () => {
                         <h3 className="text-lg font-semibold mb-2 border-b pb-2 border-gray-300">
                           {t("personnel.infoContact")}
                         </h3>
-                        <div className="space-y-2 text-sm text-gray-700">
-                          <p>
-                            <strong>
-                              {t("personnel.email")}
-                              {" : "}{" "}
-                            </strong>{" "}
-                            {personnel.email}
-                          </p>
-                          <p>
-                            <strong>
-                              {t("personnel.telephone")}
-                              {" : "}{" "}
-                            </strong>{" "}
-                            {personnel.telephone}
-                          </p>
-                          <p>
-                            <strong>
-                              {t("personnel.telephone_mobile")}
-                              {" : "}{" "}
-                            </strong>{" "}
-                            {personnel.telephone_mobile}
-                          </p>
+                        <div className="space-y-3">
+                          <InfoRow
+                            icon={Mail}
+                            label={t("personnel.email")}
+                            value={personnel.email}
+                          />
+                          {personnel.telephone && (
+                            <InfoRow
+                              icon={Phone}
+                              label={t("personnel.telephone")}
+                              value={personnel.telephone}
+                            />
+                          )}
+                          {personnel.telephone_mobile && (
+                            <InfoRow
+                              icon={Phone}
+                              label={t("personnel.telephone_mobile")}
+                              value={personnel.telephone_mobile}
+                            />
+                          )}
                         </div>
                       </div>
                     </div>
@@ -387,35 +409,27 @@ const PersonnelDetails: React.FC = () => {
                         <h3 className="text-lg font-semibold mb-2 border-b pb-2 border-gray-300">
                           {t("personnel.infoLocalisation")}
                         </h3>
-                        <div className="grid grid-cols-2 space-y-2 text-sm text-gray-700">
-                          <p>
-                            <strong>
-                              {t("personnel.pays")}
-                              {" : "}{" "}
-                            </strong>{" "}
-                            {personnel.pays}
-                          </p>
-                          <p>
-                            <strong>
-                              {t("personnel.ville")}
-                              {" : "}{" "}
-                            </strong>{" "}
-                            {personnel.ville}
-                          </p>
-                          <p>
-                            <strong>
-                              {t("personnel.adresse")}
-                              {" : "}{" "}
-                            </strong>{" "}
-                            {personnel.adresse}
-                          </p>
-                          <p>
-                            <strong>
-                              {t("personnel.code_postal")}
-                              {" : "}{" "}
-                            </strong>{" "}
-                            {personnel.code_postal}
-                          </p>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                          <InfoRow
+                            icon={Locate}
+                            label={t("personnel.ville")}
+                            value={personnel.ville}
+                          />
+                          {personnel.code_postal && (
+                            <InfoRow
+                              icon={Barrel}
+                              label={t("personnel.code_postal")}
+                              value={personnel.code_postal}
+                            />
+                          )}
+
+                          {personnel.adresse && (
+                            <InfoRow
+                              icon={MapPin}
+                              label={t("personnel.adresse")}
+                              value={personnel.adresse}
+                            />
+                          )}
                         </div>
                       </div>
                     </div>

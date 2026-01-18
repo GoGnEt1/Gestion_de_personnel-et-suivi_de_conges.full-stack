@@ -6,6 +6,7 @@ import { useNavigate, Link } from "react-router-dom";
 import AlerteMessage from "../components/AlerteMessage";
 import axios from "axios";
 import { API_URL } from "../api/http";
+import Confirmation from "../components/Confirmation";
 
 const ModifierConge: React.FC = () => {
   const { t } = useTranslation();
@@ -13,6 +14,7 @@ const ModifierConge: React.FC = () => {
   const [erreur, setErreur] = useState("");
   const [success, setSuccess] = useState("");
   const annee = new Date().getFullYear();
+  const [showConfirm, setShowConfirm] = useState(false);
 
   const [cin, setCin] = useState("");
   const [nomPrenom, setNomPrenom] = useState("");
@@ -20,6 +22,7 @@ const ModifierConge: React.FC = () => {
   const {
     register,
     handleSubmit,
+    reset,
     formState: { errors },
   } = useForm<Conge>();
 
@@ -44,24 +47,31 @@ const ModifierConge: React.FC = () => {
         }
       );
 
-      if (res.ok) {
-        const data = await res.json();
-        setCin(data.cin);
-        setNomPrenom(data.nom_prenoms);
-      } else {
-        setCin("");
-        setNomPrenom("");
+      if (!res.ok) {
+        throw new Error();
       }
+      const data = await res.json();
+      setCin(data.cin);
+      setNomPrenom(data.nom_prenoms);
+
+      reset({
+        matricule,
+        conge_restant_annee_courante: data.reste_n,
+        conge_restant_annee_n_1: data.reste_n_1,
+        conge_restant_annee_n_2: data.reste_n_2,
+        conge_exceptionnel: data.exceptionnel,
+        conge_compensatoire: data.compensation,
+      });
     } catch {
       setCin("");
       setNomPrenom("");
+      reset({});
     }
   };
   const onSubmit = async (data: Conge) => {
     // const access = localStorage.getItem("access");
     if (!access) {
-      navigate("/login");
-      return;
+      return navigate("/login");
     }
     // matricule obligatoire
     if (!data.matricule) {
@@ -89,6 +99,7 @@ const ModifierConge: React.FC = () => {
         return;
       }
       setSuccess(response.message);
+      reset();
     } catch (err: unknown) {
       if (axios.isAxiosError(err)) {
         if (err.response) {
@@ -248,20 +259,32 @@ const ModifierConge: React.FC = () => {
           </div>
           <div className="flex flex-col-reverse sm:flex-row-reverse justify-between gap-3 mt-6">
             <button
-              type="submit"
+              type="button"
+              onClick={() => setShowConfirm(true)}
               className="w-full px-3 py-2 rounded-xl bg-green-500 text-white hover:opacity-90 transition-all duration-500"
             >
               {t("modifierConge.submit")}
             </button>
             <button
-              onClick={() => navigate("/dashboard/admin")}
-              type="button"
+              onClick={() => reset()}
+              type="reset"
               className="w-full px-3 py-2 rounded-xl bg-red-500 text-white hover:opacity-90 transition-all duration-500"
             >
               {t("modifierConge.cancel")}
             </button>
           </div>
         </form>
+        {showConfirm && (
+          <Confirmation
+            isOpen={showConfirm}
+            message="modifierConge.confirmTitle"
+            onCancel={() => setShowConfirm(false)}
+            onConfirm={() => {
+              setShowConfirm(false);
+              handleSubmit(onSubmit)();
+            }}
+          />
+        )}
 
         <div className="border-t-1 border-gray-300 mt-8">
           <p className="mt-3">

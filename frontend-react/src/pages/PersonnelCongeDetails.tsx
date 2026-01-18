@@ -54,31 +54,14 @@ const PersonnelCongeDetails: React.FC = () => {
 
   const conge = conges[0];
   const demande = demandes[0];
+  const annee = new Date().getFullYear();
   const rows: Array<[string, string | number]> = [
     ["matricule", conge.personnel.matricule],
     ["conge_initial", conge.conge_initial],
-    [
-      `restantConge ${new Date().getFullYear()}`,
-      conge.conge_restant_annee_courante,
-    ],
-    [
-      `restantConge ${new Date().getFullYear() - 1}`,
-      conge.conge_restant_annee_n_1,
-    ],
-    [
-      `restantConge ${new Date().getFullYear() - 2}`,
-      conge.conge_restant_annee_n_2,
-    ],
+    [`restantConge ${annee}`, conge.conge_restant_annee_courante],
+    [`restantConge ${annee - 1}`, conge.conge_restant_annee_n_1],
+    [`restantConge ${annee - 2}`, conge.conge_restant_annee_n_2],
     ["totalConge", conge.conge_total],
-    // ["quotaMensuel", conge.quota_mensuel],
-    /*[
-      "resteCumules",
-      Object.values(conge.conge_mensuel_restant || {}).reduce(
-        (acc, val) => acc + Number(val || 0),
-        0
-      ),
-    ],*/
-
     ["conge_compasatoire", conge.conge_compensatoire],
     ["conge_exceptionnel", conge.conge_exceptionnel],
   ];

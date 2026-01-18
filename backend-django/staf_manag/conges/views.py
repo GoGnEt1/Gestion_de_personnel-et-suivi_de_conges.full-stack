@@ -8,17 +8,12 @@ from conges.serializers import CongeSerializer, DemandeCongeSerializer, RegleCon
 from django.utils import timezone
 from django.db import transaction
 from datetime import datetime
-# from personnel.views import IsAdminUser
 
 from django.conf import settings
 from django.core.mail import send_mail
 
 from staf_manag.utils.email_utils import send_html_email
 from staf_manag.utils.conges import to_decimal, COL_MAP, detect_header_row, safe_value, normalize, get_col
-
-
-# from .pagination import StandardReesultatsSetPagination
-# from django_filters.rest_framework import DjangoFilterBackend
 
 from conges.models import Conge, DemandeConge, RegleConge
 from personnel.models import Personnel
@@ -87,29 +82,23 @@ class CongeViewSet(viewsets.ModelViewSet):
     permission_classes = [permissions.IsAuthenticated, IsAdminOrOwner]
 
     def get_queryset(self):
-        user = self.request.user
-        today = timezone.now().date()
+        user = self.request.user        
         qs = Conge.objects.select_related('personnel').order_by('-annee')
 
         # si admin et un filtre personnel_id est passé -> filtrer par ce personnel
         if user.is_staff:
-            personnel_id = self.request.query_params.get('personnel_id') or self.request.query_params.get('personnel')
+            personnel_id = (
+                self.request.query_params.get('personnel_id') 
+                or self.request.query_params.get('personnel')
+            )
             if personnel_id:
                 qs = qs.filter(personnel__id=personnel_id)
             return qs
 
         # si utilisateur classique -> ne retourne que ses conges
-        else:
-            if hasattr(user, 'personnel'):
-                qs = qs.filter(personnel__user=user.personnel)
-            else:
-                return Conge.objects.none()
-        # recal automatique à la consultation
-        for c in qs:
-            if c.annee != today.year:
-                c.recalculer_acquisition_mensuelle(as_of=today, save=True)
-
-        return qs
+        if hasattr(user, 'personnel'):
+            return qs.filter(personnel__user=user)
+        return Conge.objects.none()
     
     @action(detail=False, methods=['post'], permission_classes=[IsAdminUser])
     def import_conges(self, request):
@@ -175,7 +164,6 @@ class CongeViewSet(viewsets.ModelViewSet):
                 logs.append(f"Congé de {matricule} pour l'annee {conge.annee} introuvable.")
 
         return Response({"logs": logs}, status=status.HTTP_200_OK)
-    
         
     @action(detail=False, methods=['post'], permission_classes=[IsAdminUser, permissions.IsAuthenticated])
     def modifier_conges(self, request):
@@ -225,10 +213,17 @@ class CongeViewSet(viewsets.ModelViewSet):
 
         try:
             p = Personnel.objects.get(matricule=matricule)
+            c = Conge.objects.get(personnel=p, annee=timezone.now().year)
             return Response({
                 "nom_prenoms": f"{p.nom} {p.prenoms}",
                 "cin": p.cin,
-                "grade": p.grade
+                "grade": p.grade,
+                
+                "reste_n_2": c.conge_restant_annee_n_2,
+                "reste_n_1": c.conge_restant_annee_n_1,
+                "reste_n": c.conge_restant_annee_courante,
+                "compensation": c.conge_compensatoire,
+                "exceptionnel": c.conge_exceptionnel
             })
         except Personnel.DoesNotExist:
             return Response({"error": "Introuvable"}, status=404)
@@ -309,6 +304,7 @@ class DemandeCongeViewSet(viewsets.ModelViewSet):
         if to_mail:
             date_debut = demande.periode.split(" - ")[0]
             date_retour = demande.periode.split(" - ")[1]
+            lien = settings.DJANGO_API_URL + "login"
 
             send_html_email(
                 subject="Demande de conge validée",
@@ -317,7 +313,7 @@ class DemandeCongeViewSet(viewsets.ModelViewSet):
                     "conge": demande,
                     "user": demande,
                     "year": timezone.now().year,
-                    "lien_espace": "https://192.168.100.13/login",
+                    "lien_espace": lien,
                     "date_retour": date_retour,
                     "date_debut": date_debut
                 },
@@ -356,14 +352,17 @@ class DemandeCongeViewSet(viewsets.ModelViewSet):
                 motif = ' | '.join(message_list)
             else:
                 motif = "Raisons techniques."
+                
+            lien = settings.DJANGO_API_URL + "login"
             send_html_email(
                 subject="Demande de congé refusée",
                 template="conge_refuse.html",
+
                 context={
                     "conge": demande,
                     "user": demande,
                     "year": timezone.now().year,
-                    "lien_espace": "https://192.168.100.13/login",
+                    "lien_espace": lien,
                     "date_retour": date_retour,
                     "date_debut": date_debut,
                     "motif": motif
@@ -393,13 +392,14 @@ class DemandeCongeViewSet(viewsets.ModelViewSet):
 
         date_debut = demande.periode.split(" - ")[0]
         date_retour = demande.periode.split(" - ")[1]
+        lien = settings.DJANGO_API_URL
 
         # envoie une notificatons à l'admin par email
         admin_email = settings.EMAIL_HOST_USER
         if request.user.is_authenticated:
-            lien_espace = "https://192.168.100.13/dashboard/admin"
+            lien_espace = lien + "dashboard/admin"
         else:
-            lien_espace = "https://192.168.100.13/login"
+            lien_espace = lien + "login"
         send_html_email(
             subject="Demande de congé annulée",
             template="conge_annule.html",
@@ -441,13 +441,15 @@ class DemandeCongeViewSet(viewsets.ModelViewSet):
         # envoie une notificatons à l'admin par email
         date_debut = demande.periode.split(" - ")[0]
         date_retour = demande.periode.split(" - ")[1]
+        lien = settings.DJANGO_API_URL
+
 
         # envoie une notificatons à l'admin par email
         admin_email = settings.EMAIL_HOST_USER
         if request.user.is_authenticated:
-            lien_espace = "https://192.168.100.13/dashboard/admin"
+            lien_espace = lien + "dashboard/admin"
         else:
-            lien_espace = "https://192.168.100.13/login"
+            lien_espace = lien + "login"
         send_html_email(
             subject="Nouvelle demande de congés",
             template="demande_conge.html",
@@ -488,4 +490,3 @@ class DemandeCongeViewSet(viewsets.ModelViewSet):
         serializer = self.get_serializer(qs, many=True)
         return Response(serializer.data)
  
-    

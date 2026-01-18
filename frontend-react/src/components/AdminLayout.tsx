@@ -5,8 +5,7 @@ import { useAuth } from "../context/useAuth";
 import Langue from "../i18n/Langue";
 import type { Personnel } from "../types/personnel";
 import axiosClient from "../api/axiosClient";
-import { CiHome, CiUser } from "react-icons/ci";
-import { Bars3Icon } from "@heroicons/react/24/outline";
+import { HomeIcon, UserIcon, Bars3Icon } from "@heroicons/react/24/solid";
 
 import {
   BookOpen,
@@ -69,13 +68,13 @@ const AdminLayout: React.FC = () => {
         items: [
           {
             key: "home",
-            icons: <CiHome className="h-6 w-6" />,
+            icons: <HomeIcon className="h-6 w-6" />,
             label: t("dasboard.home"),
             link: "/dashboard/admin",
           },
           {
             key: "profile",
-            icons: <CiUser className="h-6 w-6" />,
+            icons: <UserIcon className="h-6 w-6" />,
             label: t("dasboard.cards.MonCompte"),
             link: `personnel/${personnel?.id}-${slugi}`,
           },

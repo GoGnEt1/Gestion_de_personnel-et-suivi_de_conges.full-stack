@@ -69,7 +69,7 @@ const Login: React.FC<LoginProps> = ({ setAuth }) => {
         if (res.data.nom || res.data.prenoms)
           localStorage.setItem(
             "resetName",
-            `${res.data.nom || ""} ${res.data.prenoms || ""}`.trim()
+            `${res.data.nom || ""} ${res.data.prenoms || ""}`.trim(),
           );
 
         // stocke data utiles device_id_expected
@@ -194,7 +194,6 @@ const Login: React.FC<LoginProps> = ({ setAuth }) => {
                       {t("password")}
                     </label>
                   </div>
-                  {/* <FaLock className="absolute top-1/2 right-5 text-[#717171] transform -translate-y-3/5" /> */}
 
                   <button
                     type="button"
@@ -232,9 +231,9 @@ const Login: React.FC<LoginProps> = ({ setAuth }) => {
                   type="submit"
                   disabled={loading}
                   aria-label={t("login")}
-                  className="bg-[#00bcd4] text-white py-2 px-0 border cursor-pointer rounded-md transition duration-500 ease-out w-full hover:bg-transparent hover:text-[#00bcd4] hover:border-[#00bcd4] disabled:bg-gray-400 disabled:text-white disabled:cursor-progress"
+                  className="bg-[#00bcd4] text-white py-2 px-0 border cursor-pointer rounded-md transition duration-500 ease-out w-full disabled:green-300"
                 >
-                  {loading ? t("loadingConnect") : t("loginSe")}
+                  {t("loginSe")}
                 </button>
               </form>
             </div>

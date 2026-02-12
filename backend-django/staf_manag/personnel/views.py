@@ -5,7 +5,7 @@ from rest_framework.response import Response
 from rest_framework.decorators import action, parser_classes
 # from django_filters.rest_framework import DjangoFilterBackend
 
-from conges.views import IsAdminOrOwner
+# from conges.views import IsAdminOrOwner
 from rest_framework.parsers import MultiPartParser, FormParser
 import pandas as pd
 from django.http import JsonResponse 
@@ -15,12 +15,16 @@ from staf_manag.pandas_import import parse_date
 from django.utils import timezone
 # from datetime import timedelta
 
-from .serializers import PersonnelSerializer
-from .models import Personnel
+from .serializers import PersonnelSerializer, DemandeSerializer
+from .models import Personnel, Demande
+from accounts.models import CustomUser
+from staf_manag.utils.email_utils import send_html_email
+from django.conf import settings
 
 # les imports pour exporter les personnels
 from django.http import HttpResponse
 from .export_utils import generate_excel
+from django.http import JsonResponse
 
 # les imports pour importer les personnels
 import zipfile
@@ -28,6 +32,24 @@ import shutil
 from pathlib import Path
 from django.conf import settings
 from . import import_helpers # module hypothétique pour fonctions réutilisables
+
+from rest_framework.permissions import BasePermission
+
+class IsAdminOrPersonnelOwner(BasePermission):
+    def has_object_permission(self, request, view, obj):
+        user = request.user
+        if not user.is_authenticated:
+            return False
+
+        # Admin = OK
+        if user.is_staff or user.is_superuser:
+            return True
+
+        # Owner = OK
+        if hasattr(user, "personnel") and user.personnel:
+            return obj.id == user.personnel.id
+
+        return False
 
 # extraction ZIP sécurisée (empêcher path transversal)
 def safe_extract_zip(zip_path:Path, dest_dir: Path, overwrite: bool=True) -> tuple:
@@ -66,6 +88,13 @@ def safe_extract_zip(zip_path:Path, dest_dir: Path, overwrite: bool=True) -> tup
     except Exception as e:
         return False, [f"Une erreur s'est produite lors de l'extraction ZIP: {e}"]
 
+def test_https(request):
+    return JsonResponse({
+        "is_secure": request.is_secure(),
+        "scheme": request.scheme,
+        "forwarded_proto": request.META.get("HTTP_X_FORWARDED_PROTO"),
+        "absolute": request.build_absolute_uri("/medias/test.png"),
+    })
 class IsAdminUser(permissions.BasePermission):
     """
     Permission personnalisée: s'assurer que l'utilisateur est admin
@@ -84,7 +113,7 @@ ALLOWED_MEDIA_FIELDS = {
 class PersonnelViewSet(viewsets.ModelViewSet):
     queryset = Personnel.objects.all()
     serializer_class = PersonnelSerializer
-    permission_classes = [permissions.IsAuthenticated, IsAdminOrOwner]
+    permission_classes = [permissions.IsAuthenticated, IsAdminOrPersonnelOwner]
 
     def perform_update(self, serializer):
         # empêcher l'user de toucher les champs matricule, cin, grade,...
@@ -97,16 +126,11 @@ class PersonnelViewSet(viewsets.ModelViewSet):
             for field in restricted_fields:
                 if field in serializer.validated_data:
                     serializer.validated_data.pop(field)
-        # old_personnel = Personnel.objects.get(pk=serializer.instance.pk)
-        # old_grade = old_personnel.grade
         serializer.save()
 
     # on cree les personnel via formulaire
     def create(self, request, *args, **kwargs):
         data=request.data
-        # data['role'] = "utilisateur"
-        # data['is_staff'] = False
-        # data['is_active'] = True
         serializer = self.get_serializer(data=data)
 
         if Personnel.objects.filter(matricule=data['matricule']).exists():
@@ -268,7 +292,6 @@ class PersonnelViewSet(viewsets.ModelViewSet):
             return Response(data, status=status.HTTP_200_OK)
         
         if request.method.lower() == 'patch':
-            # print("Données de la requête: ", request.data)
             serializer = self.get_serializer(personnel, data=request.data, partial=True, context={'request': request})
             serializer.is_valid(raise_exception=True)
 
@@ -363,12 +386,12 @@ class PersonnelViewSet(viewsets.ModelViewSet):
             return Response(result, status=status.HTTP_200_OK)
 
         except Exception as e:
-            # essayer de nettoyer
+            # nettoyage du temp
             if temp_dir.exists():
                 shutil.rmtree(temp_dir)
             return Response({"error": f"Erreur serveur: {e}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
-    @action(detail=True, methods=['patch'], permission_classes=[permissions.IsAuthenticated, IsAdminUser])
+    @action(detail=True, methods=['patch'], permission_classes=[permissions.IsAuthenticated])
     def upload_media(self, request, pk=None):
         """
         Admin only: upload file to a specific media field.
@@ -382,14 +405,32 @@ class PersonnelViewSet(viewsets.ModelViewSet):
         if not file:
             return Response({"detail": "Fichier manquant."}, status=status.HTTP_400_BAD_REQUEST)
 
-        # Optionnel: validations sur type/size
-        # if file.size > MAX_SIZE: ...
+        user = request.user
+        is_admin = user.is_staff or user.is_superuser
+        is_owner = (
+            hasattr(user, "personnel")
+            and user.personnel
+            and user.personnel.id == personnel.id
+        )
+
+        if field == "cv":
+            if not (is_admin or is_owner):
+                return Response(
+                    {"detail": "Vous ne pouvez modifier que votre propre CV."},
+                    status=status.HTTP_403_FORBIDDEN
+                )
+        else:
+            if not is_admin:
+                return Response(
+                    {"detail": "Seuls les administrateurs peuvent modifier ce fichier."},
+                    status=status.HTTP_403_FORBIDDEN
+                )
 
         setattr(personnel, field, file)
         personnel.save(update_fields=[field])
         return Response({"message": f"{field} mis à jour."}, status=status.HTTP_200_OK)
 
-    @action(detail=True, methods=['post'], permission_classes=[permissions.IsAuthenticated, IsAdminUser])
+    @action(detail=True, methods=['post'], permission_classes=[permissions.IsAuthenticated])
     def delete_media(self, request, pk=None):
         """
         Admin only: supprimer le media d'un champ.
@@ -403,6 +444,28 @@ class PersonnelViewSet(viewsets.ModelViewSet):
         current = getattr(personnel, field)
         if not current:
             return Response({"detail": "Aucun fichier à supprimer."}, status=status.HTTP_400_BAD_REQUEST)
+
+        user = request.user
+        is_admin = user.is_staff or user.is_superuser
+        is_owner = (
+            hasattr(user, "personnel")
+            and user.personnel
+            and user.personnel.id == personnel.id
+        )
+
+        # tout utilisateur peut uploader son CV, mais seulement admin peut aussi uploader le cv et autre chose
+        if field == "cv":
+            if not (is_admin or is_owner):
+                return Response(
+                    {"detail": "Vous ne pouvez supprimer que votre propre CV."},
+                    status=status.HTTP_403_FORBIDDEN
+                )
+        else:
+            if not is_admin:
+                return Response(
+                    {"detail": "Seuls les administrateurs peuvent supprimer ce fichier."},
+                    status=status.HTTP_403_FORBIDDEN
+                )
 
         # Supprimer le fichier physique si besoin
         try:
@@ -443,3 +506,209 @@ class PersonnelViewSet(viewsets.ModelViewSet):
             return response
         except FileNotFoundError:
             raise Http404
+
+# demandes/views.py
+class DemandeViewSet(viewsets.ModelViewSet):
+    queryset = Demande.objects.all()
+    serializer_class = DemandeSerializer
+    permission_classes = [permissions.IsAuthenticated, IsAdminOrPersonnelOwner]
+
+    def get_queryset(self):
+        user = self.request.user
+        if user.is_staff:
+            return Demande.objects.all().order_by("-date_soumission")
+        return Demande.objects.filter(personnel=user.personnel).order_by("-date_soumission")
+
+class DemandeViewSet(viewsets.ModelViewSet):
+    queryset = Demande.objects.all()
+    serializer_class = DemandeSerializer
+    permission_classes = [permissions.IsAuthenticated, IsAdminOrPersonnelOwner]
+
+    def get_queryset(self):
+        user = self.request.user
+        if user.is_staff:
+            return Demande.objects.all().order_by("-date_soumission")
+        return Demande.objects.filter(personnel=user.personnel).order_by("-date_soumission")
+
+    @action(
+        detail=False,
+        methods=["get"],
+        permission_classes=[permissions.IsAuthenticated, permissions.IsAdminUser]
+    )
+    def last_demande_sortie(self, request):
+        personnel_id = request.query_params.get("personnel_id")
+
+        if not personnel_id:
+            return Response(
+                {"detail": "personnel_id est requis."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        demande = (
+            Demande.objects
+            .filter(
+                personnel_id=personnel_id,
+                type_demande="sortie"
+            )
+            .order_by("-date_soumission")
+            .first()
+        )
+
+        if not demande:
+            return Response(
+                {"detail": "Aucune demande de sortie trouvée."},
+                status=status.HTTP_404_NOT_FOUND
+            )
+
+        serializer = self.get_serializer(demande)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+    @action(
+        detail=False,
+        methods=["get"],
+        permission_classes=[permissions.IsAuthenticated, permissions.IsAdminUser]
+    )
+    def last_demande_attestation(self, request):
+        personnel_id = request.query_params.get("personnel_id")
+
+        if not personnel_id:
+            return Response(
+                {"detail": "personnel_id est requis."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        demande = (
+            Demande.objects
+            .filter(
+                personnel_id=personnel_id,
+                type_demande="attestation"
+            )
+            .order_by("-date_soumission")
+            .first()
+        )
+
+        if not demande:
+            return Response(
+                {"detail": "Aucune demande d'attestation trouvée."},
+                status=status.HTTP_404_NOT_FOUND
+            )
+
+        serializer = self.get_serializer(demande)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+    @action(detail=True, methods=["post"], permission_classes=[permissions.IsAuthenticated, permissions.IsAdminUser])
+    def approuver(self, request, pk=None):
+        demande = self.get_object()
+        if demande.statut != "en_attente":
+            return Response({"detail": "Vous ne pouvez approuver que les demandes en attente."}, status=status.HTTP_400_BAD_REQUEST)
+        demande.statut = "approuve"
+        demande.date_validation = timezone.now()
+        demande.save()
+
+        to_mail = demande.personnel.email or None
+        if to_mail:
+            type_demande = demande.type_demande
+            lien = settings.DJANGO_API_URL + "login"
+
+            send_html_email(
+                subject=f"Demande de {type_demande} approuvée",
+                template="demande_approuver.html",
+                context={
+                    "demande": demande,
+                    "user": request.user,
+                    "year": timezone.now().year,
+                    "lien_espace": lien,
+                    "type_demande": type_demande
+                },
+                recipient_list=to_mail
+            )
+        return Response({"message": "Demande approuvée."})
+
+    @action(detail=True, methods=["post"], permission_classes=[permissions.IsAuthenticated, permissions.IsAdminUser])
+    def refuser(self, request, pk=None):
+        demande = self.get_object()
+        if demande.statut != "en_attente":
+            return Response({"detail": "Vous ne pouvez refuser que les demandes en attente."}, status=status.HTTP_400_BAD_REQUEST)
+        demande.statut = "refuse"
+        demande.save()
+
+        to_mail = demande.personnel.email or None
+        if to_mail:
+            type_demande = demande.type_demande
+            lien = settings.DJANGO_API_URL + "login"
+
+            send_html_email(
+                subject=f"Demande de {type_demande} refusée",
+                template="demande_refuser.html",
+                context={
+                    "demande": demande,
+                    "user": request.user,
+                    "year": timezone.now().year,
+                    "lien_espace": lien
+                },
+                recipient_list=to_mail
+            )
+        return Response({"message": "Demande refusée."})
+    
+    @action(detail=False, methods=['post'], permission_classes=[permissions.IsAuthenticated])
+    def demande_form(self, request):
+        user = request.user
+        if not user.personnel:
+            return Response({"detail": "Aucun personnel associé à cet utilisateur."}, status=status.HTTP_400_BAD_REQUEST)
+        
+        serializer = self.get_serializer(data=request.data, context={'request': request})
+        serializer.is_valid(raise_exception=True)
+        demande = serializer.save()
+        # envoie une notificatons à l'admin par email
+        
+        lien = settings.DJANGO_API_URL
+
+        # recuperons le premier user admin qui a le même email que celui configurer dans settings settings.EMAIL_HOST_USER
+        # envoie une notificatons à l'admin par email
+        admin_email = str(settings.EMAIL_HOST_USER).strip()
+        if admin_email:
+            personnel = Personnel.objects.filter(email=admin_email).first()
+            admin_user = CustomUser.objects.filter(personnel=personnel).first() if personnel else request.user
+   
+        if admin_user.is_authenticated:
+            lien_espace = lien + "dashboard/admin"
+        else:
+            lien_espace = lien + "login"
+        
+        if demande.type_demande == "sortie":
+            date_sortie = demande.date_sortie.strftime("%d/%m/%Y")
+            heure_sortie = demande.heure_sortie.strftime("%H:%M")
+            heure_retour = demande.heure_retour.strftime("%H:%M")
+
+            send_html_email(
+                subject="Nouvelle demande de sortie",
+                template="demande_sortie.html",
+                context={
+                    "demande": demande,
+                    "user": admin_user,
+                    "year": timezone.now().year,
+                    "lien_espace": lien_espace,
+                    "date_sortie": date_sortie,
+                    "heure_sortie": heure_sortie,
+                    "heure_retour": heure_retour
+                },
+                recipient_list=admin_email
+            )
+        elif demande.type_demande == "attestation":
+            nbr_copies = demande.nombre_copies
+            langue_certificat = demande.get_langue_display()
+
+            send_html_email(
+                subject="Nouvelle demande d'attestation",
+                template="demande_attestation.html",
+                context={
+                    "demande": demande,
+                    "user": admin_user,
+                    "year": timezone.now().year,
+                    "lien_espace": lien_espace,
+                    "nbr_copies": nbr_copies,
+                    "langue_certificat": langue_certificat
+                },
+                recipient_list=admin_email
+            )
+            
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
+       

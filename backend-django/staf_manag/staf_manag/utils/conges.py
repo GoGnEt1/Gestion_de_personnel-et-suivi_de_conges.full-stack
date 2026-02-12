@@ -50,8 +50,13 @@ def ensure_date(d):
 # new_upadate
 import pandas as pd
 def safe_value(val, default):
-    if pd.isna(val) or val in ['', None]:
+    if pd.isna(val) or str(val).strip() in ['', None]:
         return default
+    # remplacer les virgules par des points
+    if isinstance(val, str) and val.replace(',', '', 1).isdigit():
+        val = val.replace(',', '.')
+        return to_decimal(val)
+
     return val
 
 def normalize(col):
@@ -112,8 +117,6 @@ COL_MAP = {
         f"الباقيمنالعطلالااستثنائيه{year_n}",
     ],
 }
-
-# NORMALIZED_COL_MAP = normalize_map(COL_MAP)
 
 def detect_header_row(df):
     for i in range(min(15, len(df))):

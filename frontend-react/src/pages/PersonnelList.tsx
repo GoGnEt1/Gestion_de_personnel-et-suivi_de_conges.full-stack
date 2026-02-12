@@ -6,7 +6,6 @@ import { useNavigate } from "react-router-dom";
 import Pagination from "../components/Pagination";
 import { slugify } from "../utils/slugify";
 
-// import ExportPersonnels from "../components/ExportPersonnels";
 import ExportModal from "../components/ExportModal";
 
 const PersonnelList: React.FC = () => {
@@ -69,7 +68,7 @@ const PersonnelList: React.FC = () => {
 
   const sortedPersonnels = personnelSearch.sort((a, b) => {
     return (a.nom?.toLowerCase() || "").localeCompare(
-      b.nom?.toLowerCase() || ""
+      b.nom?.toLowerCase() || "",
     );
   });
 
@@ -78,7 +77,7 @@ const PersonnelList: React.FC = () => {
   const indexOfFirstConge = indexOfLastConge + personnelPerPage;
   const paginatedPersonnels = sortedPersonnels.slice(
     indexOfLastConge,
-    indexOfFirstConge
+    indexOfFirstConge,
   );
   const onPageChange = (page: number) => {
     if (page >= 1 && page <= totalPages) {
@@ -136,10 +135,8 @@ const PersonnelList: React.FC = () => {
               <th className="px-4 py-3">{t("personnel.cin")}</th>
               <th className="px-4 py-3">{t("personnel.telephone")}</th>
               <th className="px-4 py-3 hidden md:table-cell">
-                {t("personnel.email")}
+                {t("personnel.date_affectation")}
               </th>
-              {/* <th className="px-4 py-3">{t("personnel.pv_affectation")}</th> */}
-              {/* <th className="px-4 py-3">{t("personnel.decret_officiel")}</th> */}
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-100">
@@ -165,8 +162,8 @@ const PersonnelList: React.FC = () => {
                   onClick={() =>
                     navigate(
                       `/dashboard/admin/personnel/${personnel.id}-${slugify(
-                        personnel.nom || ""
-                      )}-${slugify(personnel.prenoms || "")}`
+                        personnel.nom || "",
+                      )}-${slugify(personnel.prenoms || "")}`,
                     )
                   }
                   className="hover:bg-gray-50 transition-colors duration-300"
@@ -180,7 +177,11 @@ const PersonnelList: React.FC = () => {
                   <td className="px-4 py-3 whitespace-nowrap capitalize">
                     {personnel.specialite}
                   </td>
-                  <td className="px-4 py-3">{personnel.ecole_origine}</td>
+                  <td className="px-4 py-3">
+                    {personnel.ecole_origine?.toLowerCase().includes("fsg")
+                      ? t("fsg")
+                      : personnel.ecole_origine}
+                  </td>
                   <td className="px-4 py-3 whitespace-nowrap">
                     {personnel.matricule}
                   </td>
@@ -190,8 +191,8 @@ const PersonnelList: React.FC = () => {
                   <td className="px-4 py-3 whitespace-nowrap">
                     {personnel.telephone}
                   </td>
-                  <td className="px-4 py-3 hidden md:table-cell whitespace-nowrap text-blue-500 underline cursor-pointer">
-                    {personnel.email}
+                  <td className="px-4 py-3 hidden md:table-cell whitespace-nowrap capitalize">
+                    {personnel.date_affectation}
                   </td>
                   {/* <td className="px-4 py-3">{personnel.pv_affectation}</td> */}
                   {/* <td className="px-4 py-3">{personnel.decret_officiel}</td> */}

@@ -28,7 +28,44 @@ class Personnel(models.Model):
 
     # profil
     photo = models.ImageField(upload_to='profiles/', blank=True, null=True)
-
-
+    
     def __str__(self):
         return f"{self.nom} {self.prenoms} - {self.grade}"
+    
+class Demande(models.Model):
+    TYPE_DEMANDE = [
+        # ("conge", "Demande de congés"),
+        ("sortie", "Demande de sortie"),
+        ("attestation", "Demande d'attestation de travail"),
+    ]
+
+    STATUT = [
+        ("en_attente", "En attente"),
+        ("approuve", "Approuvée"),
+        ("refuse", "Refusée"),
+    ]
+
+    LANGUES = [
+        ("fr", "Français"),
+        ("en", "Anglais"),
+        ("ar", "Arabe"),
+    ]
+
+    personnel = models.ForeignKey(Personnel, on_delete=models.CASCADE, related_name='demandes')
+    type_demande = models.CharField(max_length=50, choices=TYPE_DEMANDE)
+    date_soumission = models.DateTimeField(auto_now_add=True, editable=False)
+    date_validation = models.DateTimeField(null=True, blank=True, editable=False)
+    motif = models.TextField(blank=True, null=True)
+    statut = models.CharField(max_length=20, choices=STATUT, default='en_attente')
+
+    date_sortie = models.DateField(null=True, blank=True)
+    heure_sortie = models.TimeField(null=True, blank=True)
+    heure_retour = models.TimeField(null=True, blank=True)
+
+    nombre_copies = models.PositiveIntegerField(null=True, blank=True, default=1)
+    langue = models.CharField(max_length=20, choices=LANGUES, default='ar')
+
+    class Meta:
+        ordering = ["-date_soumission"]
+    def __str__(self):
+        return f"{self.personnel} - {self.type_demande} ({self.statut})"

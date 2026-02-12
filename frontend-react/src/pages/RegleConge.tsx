@@ -95,13 +95,15 @@ const RegleConge: React.FC = () => {
             "Content-Type": "application/json",
             Authorization: `Bearer ${localStorage.getItem("access")}`,
           },
-          body: JSON.stringify(data),
-        }
+          body: JSON.stringify(payload),
+        },
       );
       const res = await response.json();
       if (response.ok) {
         showAlert(res.message || t("regleForm.success"), "success");
         const regle = data;
+        await fetch(`${API_URL}/conges/regle-conge/get_regle_courante/`);
+        await fetch(`${API_URL}/conges/`);
         reset({
           conge_initial_autres: regle.conge_initial_autres,
           conge_initial_tech: regle.conge_initial_tech,
@@ -231,7 +233,7 @@ const RegleConge: React.FC = () => {
             )}
           </div>
         </motion.div>
-        {/* </div> */}
+
         <motion.div
           initial={{ opacity: 0, x: 30 }}
           animate={{ opacity: 1, x: 0 }}
@@ -262,6 +264,7 @@ const RegleConge: React.FC = () => {
                     id="conge_initial_autres"
                     {...register("conge_initial_autres", { min: 1 })}
                     className="w-full py-2 px-3 border border-gray-300 rounded-md outline-none focus:border-gray-500"
+                    onWheel={(e) => e.currentTarget.blur()}
                   />
                   {errors.conge_initial_autres && (
                     <p className="text-red-500 text-xs mt-1">
@@ -282,6 +285,7 @@ const RegleConge: React.FC = () => {
                     id="conge_initial_tech"
                     {...register("conge_initial_tech", { min: 1 })}
                     className="w-full py-2 px-3 border border-gray-300 rounded-md outline-none focus:border-gray-500"
+                    onWheel={(e) => e.currentTarget.blur()}
                   />
                   {errors.conge_initial_tech && (
                     <p className="text-red-500 text-xs mt-1">
@@ -291,8 +295,8 @@ const RegleConge: React.FC = () => {
                 </div>
 
                 <motion.button
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 1.25 }}
+                  whileHover={{ scale: 1.01 }}
+                  whileTap={{ scale: 1.05 }}
                   type="button"
                   onClick={() => setShowConfirm(true)}
                   className="w-full bg-green-600 text-white py-2 px-4 rounded-md hover:bg-green-700"

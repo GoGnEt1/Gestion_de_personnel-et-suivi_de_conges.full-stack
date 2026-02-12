@@ -44,7 +44,7 @@ const ModifierConge: React.FC = () => {
           headers: {
             Authorization: `Bearer ${access}`,
           },
-        }
+        },
       );
 
       if (!res.ok) {
@@ -69,7 +69,6 @@ const ModifierConge: React.FC = () => {
     }
   };
   const onSubmit = async (data: Conge) => {
-    // const access = localStorage.getItem("access");
     if (!access) {
       return navigate("/login");
     }
@@ -94,7 +93,7 @@ const ModifierConge: React.FC = () => {
         setErreur(
           response.conge_total ||
             response.error ||
-            t("erreur de modfication de conge")
+            t("erreur de modfication de conge"),
         );
         return;
       }

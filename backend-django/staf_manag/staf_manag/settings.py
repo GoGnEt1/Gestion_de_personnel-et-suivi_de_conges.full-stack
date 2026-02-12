@@ -11,10 +11,28 @@ from datetime import timedelta
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
+# ===== CONFIGURATION SÉCURITÉ HTTPS =====
+# Django comprend qu'il est derrière un proxy HTTPS (Nginx)
+SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+
+# Redirection HTTPS gérée par Nginx, pas par Django
+SECURE_SSL_REDIRECT = False
+CSRF_COOKIE_SAMESITE = "Lax"
+SESSION_COOKIE_SAMESITE = "Lax"
+# Cookies sécurisés (HTTPS uniquement)
+SESSION_COOKIE_SECURE = True
+CSRF_COOKIE_SECURE = True
+# Sécurité (optionnel mais recommandé)
+SECURE_BROWSER_XSS_FILTER = True
+X_FRAME_OPTIONS = 'SAMEORIGIN'
+SECURE_CONTENT_TYPE_NOSNIFF = True
+# Django utilise le header X-Forwarded-Host
+USE_X_FORWARDED_HOST = True
+USE_X_FORWARDED_PORT = True
+
 # Pour s'assurer que les fichiers media sont accessibles
 MEDIA_URL = '/medias/'
 MEDIA_ROOT = os.path.join(BASE_DIR, 'medias')
-
 
 # SECURITY WARNING: keep the secret key used in production secret!
 SECRET_KEY = config('SECRET_KEY')
@@ -27,6 +45,8 @@ ALLOWED_HOSTS = [
     "localhost",
     "192.168.56.1",     # IP wifi externe
     "192.168.100.13",   # IP wifi du serveur local
+    "172.20.96.216",
+    # "172.20.97.61",     # IP wifi du serveur local
 ]
 
 # Application definition
@@ -52,6 +72,7 @@ AUTH_USER_MODEL = 'accounts.CustomUser'
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
+    'whitenoise.middleware.WhiteNoiseMiddleware',
     'corsheaders.middleware.CorsMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
@@ -78,7 +99,7 @@ TEMPLATES = [
     },
 ]
 
-WSGI_APPLICATION = 'staf_manag.wsgi.application'
+WSGI_APPLICATION = 'staf_manag.staf_manag.wsgi.application'
 
 # Forcer django à ignorer les urls sans slash en production
 APPEND_SLASH = False
@@ -93,7 +114,7 @@ DATABASES = {
         'USER': config('DB_USER'),
         'PASSWORD': config('DB_PSWD'),
         'HOST': config('DB_HOST'),
-        'PORT': '5432',
+        'PORT': config('DB_PORT'),
     }
 }
 
@@ -121,17 +142,25 @@ REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES':(
         'rest_framework_simplejwt.authentication.JWTAuthentication',
     ),
+    # 'DEFAULT_PERMISSION_CLASSES': (
+    #     'rest_framework.permissions.IsAuthenticated',
+    # )
+    # 'DEFAULT_FILTER_BACKENDS': (
+    #     'django_filters.rest_framework.DjangoFilterBackend',
+    # ),
 }
 
 # autoriser les requêtes du react
 CORS_ALLOWED_ORIGINS = [
     "https://localhost", # React vite port
-    "http://localhost:5174", # React vite port
-    "https://192.168.56.1", # React (développement)
+    # "https://192.168.56.1:5174", # React (développement)
+    "https://172.20.96.216", # React (développement)
     "https://192.168.100.13", # React (production)
-    "https://192.168.100.13:5174", # React (production)
+    # "http://172.26.0.1:5174", # React (développement)
     "https://172.26.0.1", # React (production)
+    # "https://172.26.0.1:5174", # React (production)
 ]
+
 
 CORS_ALLOW_CREDENTIALS = True
 # Pour les requêtes de type OPTIONS
@@ -158,25 +187,8 @@ CORS_ALLOW_HEADERS = [
 CSRF_TRUSTED_ORIGINS = [
     "https://192.168.100.13",
     "https://localhost",
-    "https://192.168.56.1",
+    "https://172.20.96.216",
 ]
-
-# ===== CONFIGURATION SÉCURITÉ HTTPS =====
-# Django comprend qu'il est derrière un proxy HTTPS (Nginx)
-SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
-
-# Redirection HTTPS gérée par Nginx, pas par Django
-SECURE_SSL_REDIRECT = False
-
-# Cookies sécurisés (HTTPS uniquement)
-SESSION_COOKIE_SECURE = True
-CSRF_COOKIE_SECURE = True
-# Sécurité (optionnel mais recommandé)
-SECURE_BROWSER_XSS_FILTER = True
-X_FRAME_OPTIONS = 'SAMEORIGIN'
-SECURE_CONTENT_TYPE_NOSNIFF = True
-# Django utilise le header X-Forwarded-Host
-USE_X_FORWARDED_HOST = True
 
 # Internationalization
 # https://docs.djangoproject.com/en/5.2/topics/i18n/
@@ -195,6 +207,7 @@ USE_TZ = True
 
 STATIC_URL = 'static/'
 STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
+STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
@@ -214,7 +227,7 @@ EMAIL_HOST_PASSWORD = config('EMAIL_HOST_PASSWORD')
 PASSWORD_RESET_CODE_EXPIRATION_SECONDS = 150
 PASSWORD_RESET_CODE_EXPIRATION_MINUTES = 2.5
 
-DJANGO_API_URL="https://192.168.100.13/"
+# DJANGO_API_URL="http://192.168.100.13/"
 
 SIMPLE_JWT = {
     "ACCESS_TOKEN_LIFETIME": timedelta(minutes=30),   # token valide 30 mn
@@ -222,4 +235,3 @@ SIMPLE_JWT = {
     "ROTATE_REFRESH_TOKENS": True,
     "BLACKLIST_AFTER_ROTATION": True,
 }
-

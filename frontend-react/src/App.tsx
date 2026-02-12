@@ -23,10 +23,16 @@ import PersonnelDetails from "./pages/PersonnelDetails";
 import AjoutPersonnelForm from "./pages/AjoutPersonnelForm";
 import ImportPersonnel from "./pages/ImportPersonnel";
 import FichePersonnel from "./components/FichePersonnel";
+import FicheDemandeConge from "./components/FicheDemandeConge";
+import FicheDemandeSortie from "./components/FicheDemandeSortie";
+import FicheAttestationTravail from "./components/FicheAttestationTravail";
+
+import DemandesEnLigne from "./pages/DemandesEnLigne";
+import DemandeSortieForm from "./pages/DemandeSortieForm";
+import AttestationTravailForm from "./pages/DemandeAttestationForm";
 
 // règle de conges
 import RegleConge from "./pages/RegleConge";
-import RegleCongeForm from "./pages/RegleCongeForm";
 import ImportConges from "./pages/ImportConges";
 import ModifierConge from "./pages/ModiferConge";
 // routes
@@ -48,13 +54,15 @@ const App: React.FC = () => {
                 // login avec access et refresh commme paramètre
                 login(
                   auth ? localStorage.getItem("access") || "" : "",
-                  auth ? localStorage.getItem("refresh") || "" : ""
+                  auth ? localStorage.getItem("refresh") || "" : "",
                 )
               }
             />
           }
         />
       </Route>
+      {/* <Route path="demandes-en-ligne" element={<DemandesEnLigne />} /> */}
+
       <Route path="forgot-password" element={<ForgotPassword />} />
       <Route path="verify-code" element={<VerifyCode />} />
       <Route path="reset-password" element={<ResetPassword />} />
@@ -77,6 +85,13 @@ const App: React.FC = () => {
         />
         <Route path="parametres-compte/:slug" element={<ParametresCompte />} />
         <Route path="mon-profil/:slug" element={<PersonnelDetails />} />
+
+        <Route path="demande-sortie-form" element={<DemandeSortieForm />} />
+        <Route
+          path="attestation-travail-form"
+          element={<AttestationTravailForm />}
+        />
+        <Route path="demandes-en-ligne" element={<DemandesEnLigne />} />
       </Route>
 
       {/* Routes pour les administrateurs */}
@@ -89,6 +104,7 @@ const App: React.FC = () => {
         }
       >
         <Route index element={<AdminDashboard />} />
+        <Route path="demandes-en-ligne" element={<DemandesEnLigne />} />
 
         <Route path="demande-conges-form" element={<DemandeCongeForm />} />
         <Route
@@ -105,7 +121,6 @@ const App: React.FC = () => {
         <Route path="list-conges" element={<AdminCongesTable />} />
         <Route path="list-demandes" element={<AdminDemandesTable />} />
         <Route path="regle-conges" element={<RegleConge />} />
-        <Route path="regle-conges-form" element={<RegleCongeForm />} />
         <Route path="import-conges" element={<ImportConges />} />
         <Route path="modifie-conges" element={<ModifierConge />} />
         <Route path="list-personnels" element={<PersonnelList />} />
@@ -115,11 +130,31 @@ const App: React.FC = () => {
           path="fiche-instruction"
           element={<FichePersonnel personnel={null} />}
         />
+        <Route
+          path="fiche-conges"
+          element={<FicheDemandeConge personnel={null} />}
+        />
+        <Route
+          path="fiche-sortie"
+          element={<FicheDemandeSortie personnel={null} />}
+        />
+        <Route
+          path="fiche-attestation-travail"
+          element={<FicheAttestationTravail personnel={null} />}
+        />
+
+        <Route path="demande-sortie-form" element={<DemandeSortieForm />} />
+        <Route
+          path="attestation-travail-form"
+          element={<AttestationTravailForm />}
+        />
       </Route>
 
       {/* Route par défaut */}
       <Route path="/" element={<Home />} />
+      {/* <Route path="/" element={<Navbar />} /> */}
       <Route path="*" element={<Navigate to="/" replace />} />
+      {/* routes pour PersonnelDetails */}
     </Routes>
   );
 };

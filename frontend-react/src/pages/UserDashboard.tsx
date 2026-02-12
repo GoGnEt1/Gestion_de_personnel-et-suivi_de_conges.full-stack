@@ -41,9 +41,9 @@ const UserDashboard: React.FC = () => {
   const slugi = useMemo(
     () =>
       `${slugify(personnel?.nom || "unknown")}-${slugify(
-        personnel?.prenoms || "user"
+        personnel?.prenoms || "user",
       )}`,
-    [personnel]
+    [personnel],
   );
   const cards: Card[] = [
     {
@@ -53,8 +53,10 @@ const UserDashboard: React.FC = () => {
       color: "bg-blue-500",
     },
     {
-      link: "demande-conges-form",
-      title: "DemandeCongesForm",
+      // link: "demande-conges-form",
+      // title: "DemandeCongesForm",
+      link: "demandes-en-ligne",
+      title: "DemandesEnLigne",
       icon: <ClipboardList className="w-10 h-10" />,
       color: "bg-green-500",
     },

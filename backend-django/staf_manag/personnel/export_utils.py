@@ -1,4 +1,3 @@
-# export_utils.py
 import openpyxl
 from openpyxl.utils import get_column_letter
 from openpyxl.styles import Font
@@ -102,65 +101,3 @@ def generate_excel(personnels, columns, lang='fr', base_url='http://127.0.0.1:80
     wb.save(buffer)
     buffer.seek(0)
     return buffer
-
-
-
-""""
-COLUMN_LABELS = {
-    "nom": {"fr": "Nom", "ar": "الاسم"},
-    "prenoms": {"fr": "Prénoms", "ar": "الأسماء"},
-    "grade": {"fr": "Grade", "ar": "الرتبة"},
-    "specialite": {"fr": "Spécialité", "ar": "التخصص"},
-    "ecole_origine": {"fr": "École d'origine", "ar": "المدرسة الأصلية"},
-    "cin": {"fr": "CIN", "ar": "بطاقة الهوية"},
-    "matricule": {"fr": "Matricule", "ar": "الرقم"},
-    "telephone": {"fr": "N° téléphone", "ar": "الهاتف"},
-    "email": {"fr": "Adresse e-mail", "ar": "البريد الإلكتروني"},
-    "date_affectation": {"fr": "Date d’affectation", "ar": "تاريخ التعيين"},
-    "date_passage_grade": {"fr": "Date passage grade", "ar": "تاريخ الترقية"},
-}
-
-# les imports 
-import openpyxl
-from openpyxl.utils import get_column_letter
-from io import BytesIO
-
-# from reportlab.platypus import Table, TableStyle
-# from reportlab.lib import colors
-
-def generate_excel(personnels, columns, lang='fr'):
-    wb = openpyxl.Workbook()
-    ws = wb.active
-    ws.title = "Personnels"
-
-    # En-têtes
-    headers = [COLUMN_LABELS.get(col, {}).get(lang, col) for col in columns]
-    ws.append(headers)
-
-    # Lignes
-    for p in personnels:
-        row = [str(getattr(p, col, "")) for col in columns]
-        ws.append(row)
-
-
-    # Ajuster automatiquement la largeur des colonnes
-    for i, col in enumerate(columns, 1):
-        column_letter = get_column_letter(i)
-        max_length = len(col)
-
-        for row in ws.iter_rows(min_row=2, min_col=i, max_col=i):
-            cell_value = row[0].value
-            if cell_value:
-                max_length = max(max_length, len((str(cell_value))))
-        
-        ws.column_dimensions[column_letter].width = max_length + 2
-
-    # sauvegarder en mémoire
-    buffer = BytesIO()
-    
-    wb.save(buffer)
-    buffer.seek(0)
-
-    return buffer
-"""
-

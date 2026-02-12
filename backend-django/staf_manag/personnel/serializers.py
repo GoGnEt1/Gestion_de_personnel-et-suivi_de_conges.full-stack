@@ -1,8 +1,9 @@
 from rest_framework import serializers
-from .models import Personnel
-
+from .models import Personnel, Demande
 
 class PersonnelSerializer(serializers.ModelSerializer):
+    is_owner = serializers.SerializerMethodField()
+
     role = serializers.CharField(source='user.role', default='utilisateur')
     is_staff = serializers.BooleanField(source='user.is_staff', default=False)
     is_active = serializers.BooleanField(source='user.is_active', default=True)
@@ -24,6 +25,15 @@ class PersonnelSerializer(serializers.ModelSerializer):
     nombre_enfants = serializers.IntegerField(source='user.nombre_enfants', required=False)
     partenaire = serializers.CharField(source='user.partenaire', required=False)
 
+    def get_is_owner(self, obj):
+        request = self.context.get('request')
+        if not request or not request.user.is_authenticated:
+            return False
+        
+        user = request.user
+        if not hasattr(user, 'personnel') or user.personnel is None:
+            return False
+        return obj.id == user.personnel.id
     class Meta:
         model = Personnel
         fields = '__all__'
@@ -93,6 +103,52 @@ class PersonnelSerializer(serializers.ModelSerializer):
 
         return instance
 
+# demandes/serializers.py
+class DemandeSerializer(serializers.ModelSerializer):
+    personnel = PersonnelSerializer(read_only=True)
+
+    class Meta:
+        model = Demande
+        fields = "__all__"
+        read_only_fields = [
+            "date_soumission",
+            "date_validation",
+            "statut",
+            "personnel",
+        ]
+
+    def validate(self, data):
+        type_demande = data.get("type_demande")
+
+        if type_demande == "sortie":
+            required_fields = ["date_sortie", "heure_sortie", "heure_retour", "motif"]
+            for field in required_fields:
+                if not data.get(field):
+                    raise serializers.ValidationError({
+                        field: "Ce champ est requis pour une demande de sortie."
+                    })
+
+        if type_demande == "attestation":
+            # aucune date autorisée
+            forbidden = ["date_sortie", "heure_sortie", "heure_retour", "motif"]
+            for field in forbidden:
+                if data.get(field):
+                    raise serializers.ValidationError({
+                        field: "Ce champ ne doit pas être renseigné pour une attestation."
+                    })
+
+        return data
+
+    def create(self, validated_data):
+        user = self.context["request"].user
+
+        if not hasattr(user, "personnel") or not user.personnel:
+            raise serializers.ValidationError("Aucun personnel associé à cet utilisateur.")
+
+        validated_data["personnel"] = user.personnel
+        return super().create(validated_data)
+
+    
 class PersonnelPhotoSerializer(serializers.ModelSerializer):
     class Meta:
         model = Personnel

@@ -2,7 +2,7 @@ import axiosClient from "../api/axiosClient";
 import type { Personnel } from "../types/personnel";
 import axios from "axios";
 import { useAuth } from "../context/useAuth";
-import { toast } from "react-hot-toast"; // ou ton showAlert
+import { toast } from "react-hot-toast";
 import { useTranslation } from "react-i18next";
 
 type MediaItem = { label: string; field: keyof Personnel; url?: string | null };
@@ -16,7 +16,7 @@ const MEDIA_FIELDS: MediaItem[] = [
   { label: "personnel.fiche_module_en", field: "fiche_module_en" },
 ];
 
-export default function PersonnelMedias({
+export default function PersonnelMedia({
   personnel,
   setPersonnel,
 }: {
@@ -40,7 +40,7 @@ export default function PersonnelMedias({
         form,
         {
           headers: { "Content-Type": "multipart/form-data" },
-        }
+        },
       );
       toast.success(res.data.message || "Fichier uploadé");
       // Rafraichir la ressource
@@ -49,7 +49,10 @@ export default function PersonnelMedias({
     } catch (err: unknown) {
       if (axios.isAxiosError(err)) {
         console.error(err);
-        const msg = err?.response?.data?.detail || "Erreur upload";
+        const msg =
+          err?.response?.data?.detail ||
+          err.response?.data?.message ||
+          "Erreur upload";
         toast.error(msg);
       }
     }
@@ -60,7 +63,7 @@ export default function PersonnelMedias({
     try {
       const res = await axiosClient.post(
         `/personnels/${personnelId}/delete_media/`,
-        { field }
+        { field },
       );
       toast.success(res.data.message || "Fichier supprimé");
       const refreshed = await axiosClient.get(`/personnels/${personnelId}/`);
@@ -68,18 +71,24 @@ export default function PersonnelMedias({
     } catch (err: unknown) {
       if (axios.isAxiosError(err)) {
         console.error(err);
-        const msg = err?.response?.data?.detail || "Erreur upload";
+        const msg =
+          err?.response?.data?.detail ||
+          err.response?.data?.message ||
+          "Erreur upload";
         toast.error(msg);
       }
     }
   };
+  const isOwner = personnel.is_owner;
 
   return (
     <div className="p-6">
       <h3 className="text-lg font-semibold mb-3">{t("personnel.medias")}</h3>
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-white">
         {MEDIA_FIELDS.map((m) => {
           const url = personnel[m.field] as string | null | undefined;
+          const canEdit = (isOwner && m.field === "cv") || isAdmin;
+
           return (
             <div
               key={String(m.field)}
@@ -90,7 +99,6 @@ export default function PersonnelMedias({
                 <div className="text-sm text-gray-500 lg:max-w-xs overflow-x-hidden">
                   {url ? url.split("/").pop() : t("personnel.noFile")}
                 </div>
-                {/* </div> */}
 
                 <div className="flex items-center gap-3 mt-1">
                   {url && (
@@ -106,13 +114,11 @@ export default function PersonnelMedias({
                     </div>
                   )}
 
-                  {isAdmin && (
-                    <>
-                      <label
-                        className="cursor-pointer text-blue-500 text-sm hover:underline hover:text-blue-700"
+                  {/* tous les utilisateurs pourront modifier ou ajouter ou supprimer son propre fichier cv */}
 
-                        // className="cursor-pointer text-sm text-white bg-green-600 px-2 py-1 rounded hover:bg-green-700"
-                      >
+                  {canEdit && (
+                    <>
+                      <label className="cursor-pointer text-blue-500 text-sm hover:underline hover:text-blue-700">
                         {url
                           ? t("personnel.upload")
                           : t("personnel.ajoutFichier")}

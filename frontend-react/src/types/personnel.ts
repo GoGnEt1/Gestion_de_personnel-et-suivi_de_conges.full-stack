@@ -1,3 +1,5 @@
+import type { Conge } from "../api/conge_api";
+import { API_URL, authHeaders } from "../api/http";
 export type Personnel = {
   id: number;
   matricule: string;
@@ -27,6 +29,7 @@ export type Personnel = {
   is_active?: boolean;
   is_staff?: boolean;
   is_superuser?: boolean;
+  is_owner?: boolean;
 
   adresse?: string;
   telephone_mobile?: string;
@@ -44,6 +47,60 @@ export type Personnel = {
   observations?: string;
 };
 
+export type Demande = {
+  id: number;
+  statut: string;
+  personnel?: Personnel;
+  conge?: Conge;
+  date_sortie?: string;
+  heure_sortie?: string;
+  heure_retour?: string;
+  type_demande: "sortie" | "attestation";
+  langue: "fr" | "en" | "ar";
+  nombre_copies?: number;
+  motif: string | null;
+  date_soumission: string;
+  date_validation: string | null;
+};
+
+export async function approuverDemande(access: string, id: number) {
+  const res = await fetch(`${API_URL}/demandes/${id}/approuver/`, {
+    method: "POST",
+    headers: authHeaders(access),
+    body: JSON.stringify({}),
+  });
+
+  const data = await res.json();
+
+  if (!res.ok) {
+    throw data; // force le catch
+  }
+  return data;
+}
+
+export function getErrorMessage(err: unknown): string {
+  if (typeof err === "object" && err !== null) {
+    const errObj = err as Record<string, unknown>;
+    if ("detail" in errObj) return String(errObj.detail);
+    if ("message" in errObj) return String(errObj.message);
+  }
+  return "Erreur de serveur. Ressayez plus tard";
+}
+
+export async function refuserDemande(access: string, id: number) {
+  const res = await fetch(`${API_URL}/demandes/${id}/refuser/`, {
+    method: "POST",
+    headers: authHeaders(access),
+    body: JSON.stringify({}),
+  });
+
+  const data = await res.json();
+
+  if (!res.ok) {
+    throw data; // force le catch
+  }
+  return data;
+}
 export type Password = {
   old_password: string;
   new_password: string;

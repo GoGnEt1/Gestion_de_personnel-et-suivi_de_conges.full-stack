@@ -18,6 +18,7 @@ export type DemandeConge = {
   id: number;
   personnel: Personnel;
   statut: "en_attente" | "valide" | "refuse";
+  type_demande: "standard" | "exceptionnel" | "compensatoire";
   conge_demande: number;
   debut_conge: string;
   periode: string;
@@ -38,8 +39,11 @@ export type Conge = {
   conge_exceptionnel: number;
   conge_compensatoire: number;
   conge_mensuel_restant?: Record<string, number>;
+  // quota_mensuel: number;
   personnel: Personnel;
   demandes?: DemandeConge | null;
+  // fonction jours_acquis qui retour un decimal
+  jours_acquis: () => number;
 };
 
 // gestion des erreurs json
@@ -71,7 +75,7 @@ export async function parseErrorResponse(res: Response) {
 // api/conge_api.ts (ou fichier équivalent)
 export async function fetchMesConges(
   access: string,
-  personnelId?: number
+  personnelId?: number,
 ): Promise<Conge[]> {
   let url = `${API_URL}/conges/`;
   if (personnelId) {
@@ -82,10 +86,10 @@ export async function fetchMesConges(
   });
   if (!res.ok) {
     console.error(
-      `erreur de chargement des conges ${res.status} ${res.statusText}`
+      `erreur de chargement des conges ${res.status} ${res.statusText}`,
     );
     throw new Error(
-      `erreur de chargement des conges ${res.status} ${res.statusText}`
+      `erreur de chargement des conges ${res.status} ${res.statusText}`,
     );
   }
   return res.json();
@@ -133,7 +137,7 @@ export async function refuserConge(access: string, id: number) {
 }
 
 export async function fetchRecentRegles(
-  access: string
+  access: string,
 ): Promise<RegleCongeData[]> {
   const res = await fetch(`${API_URL}/conges/regle-conge/get_regle_courante/`, {
     headers: authHeaders(access),
@@ -144,7 +148,7 @@ export async function fetchRecentRegles(
 }
 
 export async function fetchAllRegles(
-  access: string
+  access: string,
 ): Promise<RegleCongeData[]> {
   const res = await fetch(`${API_URL}/conges/regle-conge/get_all_regles/`, {
     headers: authHeaders(access),

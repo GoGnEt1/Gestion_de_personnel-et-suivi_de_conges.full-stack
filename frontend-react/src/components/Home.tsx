@@ -20,7 +20,7 @@ const Home: React.FC = () => {
   const [index, setIndex] = useState(0);
   const timerRef = useRef<number | null>(null);
   const [now, setNow] = useState(() =>
-    new Date().toLocaleString("fr-FR", { timeZone: "Africa/Tunis" })
+    new Date().toLocaleString("fr-FR", { timeZone: "Africa/Tunis" }),
   );
 
   // autoplay + clock

@@ -1,0 +1,38 @@
+{% extends 'base.html' %}
+
+<!-- title -->
+{% block title %}Demande approuvéé{% endblock %}
+
+<!-- content -->
+{% block content %}
+<!--  -->
+Désolez, votre demande {{type_demande}} a été <strong>refusée</strong>.<br />
+
+<strong>Veuillez contacter l'administration pour en savoir plus. Merci!</strong>
+
+<!--  -->
+{% endblock %}
+
+<!-- code -->
+{% block code %}
+<!--  -->
+<!--  -->
+{% endblock %}
+
+<!-- lien de verification -->
+{% block lien %}
+<a
+  href="{{lien_espace}}"
+  target="_blank"
+  rel="noopener noreferrer"
+  class="btn btn-secondary"
+  >Mon espace</a
+>
+{% endblock %}
+
+<!-- avertissement -->
+{% block avertissement %}
+<!--  -->
+Nous vous remercions de votre confiance.
+<!--  -->
+{% endblock %}

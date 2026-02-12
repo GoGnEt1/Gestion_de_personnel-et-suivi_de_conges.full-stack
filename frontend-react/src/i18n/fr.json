@@ -80,10 +80,15 @@
     "jours": "Nombre de jours",
     "debut": "Date de début",
     "motif": "Motif",
+    "type": "Type de demande",
+    "standard": "Demande mensuelle",
+    "exceptionnel": "Demande exceptionnelle",
+    "compensatoire": "Demande compensatoire",
     "reason": "Donnez les raisons de votre demande de congé.",
     "submit": "Soumettre",
     "success": "votre demande de congé a été soumise avec succès."
   },
+
   "admin": {
     "congesTable_title": "Tableau de bord des conges",
     "search": "Rechercher un congé",
@@ -111,7 +116,7 @@
     "annuler": "Annuler",
     "table": {
       "title1": "Demandes en attente",
-      "duree": "soumise le",
+      "duree": "Soumise le",
       "nom": "Nom",
       "periode": "Période",
       "conge_demandee": "Jours demandés",
@@ -177,7 +182,8 @@
       "MonCompte": "Mon compte",
       "AjoutPersonnel": "Ajouter de personnels",
       "EspacePersonnel": "Espace personnel",
-      "EspaceAdmin": "Espace administrateur"
+      "EspaceAdmin": "Espace administrateur",
+      "DemandesEnLigne": "Demandes en ligne"
     }
   },
 
@@ -261,6 +267,7 @@
     "title": "Modier les paramètres d'un congé",
     "reste": "Congés restants",
     "cancel": "Annuler",
+    "confirmTitle": "Voulez-vous vraiment modifier ce congé ?",
     "submit": "Modifier",
     "importer": "Souhaitez-vous mettre à jour à partir d'un fichier?",
     "importer_link": "Importer"
@@ -442,5 +449,51 @@
     "conditions": "Conditions d'utilisation",
     "politique": "Politique de confidentialité",
     "dateLocal": "Date locale :"
-  }
+  },
+
+  "ficheC": "Fiche de congés",
+  "ficheS": "Fiche de sortie",
+  "ficheT": "Attestion de travail",
+  "demandesEnLigne": "Demande en ligne",
+
+  "demande": {
+    "model": "Modèles de demande",
+    "sortie": "Demande de sortie",
+    "title": "+ Déposer une demande en ligne",
+    "conge": "Demande de congé",
+    "attestation": "Demande d'attestation de travail",
+    "empty": "Vous n'avez aucune demande en ligne.",
+    "type": "Type de demande",
+    "statut": "Statut",
+    "dateSubmission": "Date de soumission",
+    "actions": "Actions",
+    "approuver": "Approuver",
+    "approuve": "Approuvée",
+    "details": "Détails de la demande",
+    "motif": "Motif",
+    "fermer": "Fermer",
+    "dateSortie": "Date de sortie",
+    "heureSortie": "Heure de Sortie",
+    "heureRetour": "Heure de Retour",
+    "requiredFields": "Veuillez fournir tous les champs obligatoires.",
+    "invalidTime": "Veuillez fournir une heure valide au format HH:MM.",
+    "invalidTimeRange1": "L'heure de sortie ne peut etre inferieure a l'heure actuelle.",
+    "invalidTimeRange": "L'heure de sortie doit etre inferieur a l'heure de retour.",
+    "success": "Votre demande a bien été soumise.",
+    "save": "Enregistrer",
+    "requestLangue": "Je vous prie de me fournir le certificat de travail dans la langue ",
+    "exemplaire": "Nombre d'exemplaires",
+    "langue": "Langue",
+    "lieuTravail": "Lieu de travail"
+  },
+  "contacterAdmin": "Contacter l'administration",
+  "invalidDate": "Veuillez fournir une date valide au format YYYY-MM-DD.",
+  "invalidDateRange": "La date de sortie ne peut être inferieure a la date actuelle.",
+  "gabes": "Gabès",
+  "signature": "Signature",
+  "avisChef": "Avis du chef de service",
+  "a": " à ",
+  "ar": "Arabe",
+  "fr": "Français",
+  "en": "Anglais"
 }

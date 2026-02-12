@@ -9,7 +9,7 @@ from django.core.exceptions import ValidationError as DjangoValidationError
 
 import re
 from datetime import date
-from staf_manag.utils.conges import to_decimal
+from staf_manag.utils.conges import mois_de_travail, to_decimal
 from staf_manag.pandas_import import parse_date
 
 def get_lock_minutes():
@@ -97,6 +97,7 @@ class Conge(models.Model):
         self.conge_mensuel_restant = {k: float(v or 0.0) for k, v in result.items()}
 
         self.recalculer_total_conges(save=False)
+       
         
     def save(self, *args, **kwargs):
         if not getattr(self, "annee", None):
@@ -131,7 +132,6 @@ class Conge(models.Model):
         if as_of is None:
             as_of = timezone.now().date()
 
-        # self.annee = as_of.year
         if self.annee != as_of.year:
             return
 
@@ -160,8 +160,7 @@ class Conge(models.Model):
             result[f"{m:02d}"] = part
 
         self.conge_mensuel_restant = {k: float(v) for k, v in result.items()}
-        # self.conges_acquis = sum(result.values())
-
+        
         self.recalculer_total_conges(save=False)
 
         if save:
@@ -211,7 +210,8 @@ class Conge(models.Model):
         1. Les conges restants de l'annee n-2
         2. Les conges restants de l'annee n-1
         3. Les conges restants mensuels de l'annee courante (des mois anterieurs au mois de la demande)
-        4. Les conges exceptionnels de l'annee courante
+        # 4. Les conges exceptionnels de l'annee courante
+        Retourne la valeur restante (Decimal)
         Modifie et sauvegarde self mais sans self.save() 
         """
         if as_of is None:
@@ -244,21 +244,14 @@ class Conge(models.Model):
                 debit = min(montant, available)
                 new_val = _quant(available - debit)
                 self.conge_mensuel_restant[key] = float(new_val)
+                
                 # décrémenter le conge restant de l'annee courante
                 self.conge_restant_annee_courante = _quant(to_decimal(self.conge_restant_annee_courante) - debit)
                 montant = montant - debit
 
-        # 4. Les conges exceptionnels de l'annee courante
-        if montant > 0:
-            exceptionnel = to_decimal(self.conge_exceptionnel)
-            if exceptionnel > 0:
-                debit = min(montant, exceptionnel)
-                self.conge_exceptionnel = int(exceptionnel - debit)
-                montant = montant - debit
-
         # Après prélèvements, recalculer conge total sans save
         self.recalculer_total_conges(save=False)
-
+        
 # Models Demande Congé à créer
 class DemandeConge(models.Model):
     STATUT_CHOICES = [
@@ -267,6 +260,12 @@ class DemandeConge(models.Model):
         ('refuse', 'Refusé'),
     ]
     
+    TYPE_DEMANDE = [
+        ('standard', 'Demande Standard'),
+        ('exceptionnel', 'Demande Exceptionnelle'),
+        ('compensatoire', 'Demande Compensatoire'),
+    ]
+
     personnel = models.ForeignKey(Personnel, on_delete=models.CASCADE, related_name='demandes_conges')
     conge = models.ForeignKey(Conge, on_delete=models.CASCADE, related_name='demandes')
     annee = models.IntegerField()
@@ -279,6 +278,8 @@ class DemandeConge(models.Model):
     date_validation = models.DateTimeField(null=True, blank=True, editable=False)
     annule = models.BooleanField(null=True, blank=True)
     date_annulation = models.DateTimeField(null=True, blank=True, editable=False)
+
+    type_demande = models.CharField(max_length=20, choices=TYPE_DEMANDE, default='standard')
     
     class Meta:
         ordering =  ['-date_soumission']
@@ -301,47 +302,60 @@ class DemandeConge(models.Model):
             return DjangoValidationError({'conge_demande': 'Le nombre de jours demandé doit être supérieur a 0'})
         
         #  on locke la demande de conge pour la sécurité
-        demande = DemandeConge.objects.select_for_update().get(pk=self.pk)
-        conge = Conge.objects.select_for_update().get(pk=demande.conge.pk)
+        with transaction.atomic():
+            demande = DemandeConge.objects.select_for_update().get(pk=self.pk)
+            conge = Conge.objects.select_for_update().get(pk=demande.conge.pk)
 
-        as_of = parse_date(self.debut_conge) if self.debut_conge else timezone.now()
+            #  calculer droit acquis à la date de soumission
+            as_of = parse_date(self.debut_conge) if self.debut_conge else timezone.now()
+            # droit_acquis = to_decimal(conge.jours_acquis(as_of=as_of))
 
-        #  calculer restes mensuels jusqu' avant prélèvement
-        mois_debut = as_of.month
-        print(mois_debut)
-        restes_mensuels = Decimal('0.00')
-        for m in range(1, mois_debut + 1):
-            key=f"{m:02d}"
-            restes_mensuels += to_decimal(conge.conge_mensuel_restant.get(key, 0))
+            if demande.type_demande == 'standard':
+                #  calculer restes mensuels jusqu' avant prélèvement
+                mois_debut = as_of.month
+                print(mois_debut)
+                restes_mensuels = Decimal('0.00')
+                for m in range(1, mois_debut + 1):
+                    key=f"{m:02d}"
+                    restes_mensuels += to_decimal(conge.conge_mensuel_restant.get(key, 0))
 
-        print(restes_mensuels)
-        total_dispo = (
-            to_decimal(conge.conge_restant_annee_n_2) +
-            to_decimal(conge.conge_restant_annee_n_1) +
-            restes_mensuels
-            # droit_acquis
-            + to_decimal(conge.conge_exceptionnel)
-            )
-        print(total_dispo)
-        if demande_jours > total_dispo:
-            raise DjangoValidationError({ "conge_demande_non_valide": f"Solde de congé insuffisant. Il ne reste que {total_dispo} jours de congés." })
+                print(restes_mensuels)
+                total_dispo = (
+                    to_decimal(conge.conge_restant_annee_n_2) +
+                    to_decimal(conge.conge_restant_annee_n_1) +
+                    restes_mensuels
+                )
+                print(total_dispo)
+                if demande_jours > total_dispo:
+                    raise DjangoValidationError({ "conge_demande_non_valide": f"Solde de congé insuffisant. Il ne reste que {total_dispo} jours de congés." })
 
-        #  prélèvement de conges
-        conge.prelement_conges(demande_jours, as_of=as_of)
+                #  prélèvement de conges
+                conge.prelement_conges(demande_jours, as_of=as_of)
+            elif demande.type_demande == 'exceptionnel':
+                if demande_jours > to_decimal(conge.conge_exceptionnel):
+                    raise DjangoValidationError({ "conge_demande_non_valide": f"Solde de congé exceptionnel insuffisant. Disponible: {conge.conge_exceptionnel} jours." })
+                
+                conge.conge_exceptionnel = int(conge.conge_exceptionnel - demande_jours)
+            
+            elif demande.type_demande == 'compensatoire':
+                reste = to_decimal(conge.conge_compensatoire)
+                if demande_jours > reste:
+                    raise DjangoValidationError({ "conge_demande_non_valide": f"Solde de congé compensatoire insuffisant. Disponible: {conge.conge_compensatoire} jours." })
+                
+                conge.conge_compensatoire = _quant(reste - demande_jours)
+    
+            demande.statut = 'valide'
+            demande.date_validation = timezone.now()
+            demande.save()
 
-        demande.statut = 'valide'
-        demande.date_validation = timezone.now()
-        demande.save()
+            conge.save()
 
-        conge.save()
-
-        return demande
+            return demande
     
     def refuser(self):
         self.statut = 'refuse'
-        self.date_validation = timezone.now()
+        self.date_annulation = timezone.now()
         self.save()
-
 
     def save(self, *args, **kwargs):
         #  mettre à jour l'année 

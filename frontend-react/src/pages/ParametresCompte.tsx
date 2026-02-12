@@ -14,7 +14,6 @@ import { API_URL } from "../api/http";
 import ImageCropper from "../components/ImageCropper";
 
 const ParametresCompte: React.FC = () => {
-  // const ParametresCompte: React.FC<{ isMe?: boolean }> = ({ isMe = false }) => {
   const { user } = useAuth();
   const [activeTab, setActiveTab] = useState("profile");
   const [personnel, setPersonnel] = useState<Personnel | null>(null);
@@ -23,7 +22,6 @@ const ParametresCompte: React.FC = () => {
     email_notifications: true,
     sms_notifications: false,
   });
-  // const [password, setPassword] = useState<Password | null>(null);
   const { t } = useTranslation();
 
   const [alert, setAlert] = useState<{
@@ -41,7 +39,6 @@ const ParametresCompte: React.FC = () => {
   const [preferencesActuelles, setPreferencesActuelles] =
     useState<Preferences | null>(null);
   useEffect(() => {
-    // if (personnel?.matricule) {
     const url = isMe ? `/personnels/me/` : `/personnels/${id}/`;
     axiosClient
       .get(url)
@@ -55,7 +52,6 @@ const ParametresCompte: React.FC = () => {
       .finally(() => {
         setLoading(false);
       });
-    // }
 
     //  charger les preferences
     axiosClient
@@ -106,7 +102,6 @@ const ParametresCompte: React.FC = () => {
       personnel?.matricule === valeurActuelle?.matricule &&
       personnel?.cin === valeurActuelle?.cin &&
       personnel?.ecole_origine === valeurActuelle?.ecole_origine &&
-      // personnel?.role === valeurActuelle?.role &&
       personnel?.grade === valeurActuelle?.grade &&
       personnel?.specialite === valeurActuelle?.specialite &&
       personnel?.date_affectation === valeurActuelle?.date_affectation &&
@@ -198,7 +193,6 @@ const ParametresCompte: React.FC = () => {
           cin: personnel?.cin,
           matricule: personnel?.matricule,
           ecole_origine: personnel?.ecole_origine,
-          // role: personnel?.role,
           grade: personnel?.grade,
           specialite: personnel?.specialite,
           date_affectation: personnel?.date_affectation,
@@ -212,8 +206,8 @@ const ParametresCompte: React.FC = () => {
       // filtrer les champs non vides
       const filteredPlayload = Object.fromEntries(
         Object.entries(playload).filter(
-          ([, value]) => value !== undefined && value !== null && value !== ""
-        )
+          ([, value]) => value !== undefined && value !== null && value !== "",
+        ),
       );
 
       const res = await axiosClient.patch(url, filteredPlayload);
@@ -229,7 +223,7 @@ const ParametresCompte: React.FC = () => {
             Object.entries(err.response.data)
               .map(
                 ([key, value]) =>
-                  `${key}: ${Array.isArray(value) ? value.join(", ") : value}`
+                  `${key}: ${Array.isArray(value) ? value.join(", ") : value}`,
               )
               .join(" • ") ||
             t("parametre.errorProfile");
@@ -329,7 +323,7 @@ const ParametresCompte: React.FC = () => {
               response.non_field_errors ||
               response.error ||
               t("parametre.errorPassword"),
-            "error"
+            "error",
           );
         }
       }
@@ -605,6 +599,8 @@ const ParametresCompte: React.FC = () => {
                         type="date"
                         className="p-2 border text-sm border-gray-300 outline-none rounded bg-gray-50 focus:border-gray-500"
                         value={personnel?.birthday || ""}
+                        // maximum la date actuelle
+                        max={new Date().toISOString().split("T")[0]}
                         placeholder={t("personnel.dateNaissance")}
                         onChange={(e) =>
                           setPersonnel({
@@ -656,7 +652,7 @@ const ParametresCompte: React.FC = () => {
                           const value = input.value.replace(/\D+/g, "");
                           const formattedValue = value.replace(
                             /(\d{2})(\d{2})(\d{2})(\d{2})/,
-                            "$1 $2 $3 $4"
+                            "$1 $2 $3 $4",
                           );
                           input.value = formattedValue;
                         }}
@@ -990,7 +986,7 @@ const ParametresCompte: React.FC = () => {
                             onClick={() => {
                               if (
                                 !confirm(
-                                  "vous êtes sûr de modifier ce champ technique ?"
+                                  "vous êtes sûr de modifier ce champ technique ?",
                                 )
                               )
                                 return;
@@ -1013,7 +1009,7 @@ const ParametresCompte: React.FC = () => {
                             onClick={() => {
                               if (
                                 !confirm(
-                                  "vous êtes sûr de modifier ce champ technique ?"
+                                  "vous êtes sûr de modifier ce champ technique ?",
                                 )
                               )
                                 return;

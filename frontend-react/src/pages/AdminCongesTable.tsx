@@ -31,7 +31,6 @@ const AdminCongesTable: React.FC = () => {
       .catch((e) => setErr(String(e)))
       .finally(() => setLoading(false));
   }, []);
-  // const currentYear = new Date().getFullYear();
   const currentYear = conges[0]?.annee;
 
   useEffect(() => {
@@ -67,7 +66,7 @@ const AdminCongesTable: React.FC = () => {
   const indexOfFirstConge = indexOfLastConge + congesPerPage;
   const paginatedConges = sortedConges.slice(
     indexOfLastConge,
-    indexOfFirstConge
+    indexOfFirstConge,
   );
   const onPageChange = (page: number) => {
     if (page >= 1 && page <= totalPages) {
@@ -144,8 +143,8 @@ const AdminCongesTable: React.FC = () => {
                       `/dashboard/admin/historique-conges/${
                         conge.personnel.id
                       }-${slugify(conge.personnel.nom || "")}-${slugify(
-                        conge.personnel.prenoms || ""
-                      )}`
+                        conge.personnel.prenoms || "",
+                      )}`,
                     )
                   }
                   className="hover:bg-gray-50 transition-colors duration-300"
@@ -158,19 +157,17 @@ const AdminCongesTable: React.FC = () => {
                     {conge.personnel.nom} {conge.personnel.prenoms}
                   </td>
                   <td className="px-4 py-3 text-center">
-                    {Math.round(conge.conge_restant_annee_courante)}
+                    {conge.conge_restant_annee_courante}
                   </td>
                   <td className="px-4 py-3 text-center">
-                    {Math.round(conge.conge_restant_annee_n_1)}
+                    {conge.conge_restant_annee_n_1}
                   </td>
                   <td className="px-4 py-3 text-center">
-                    {Math.round(conge.conge_restant_annee_n_2)}
+                    {conge.conge_restant_annee_n_2}
                   </td>
-                  <td className="px-4 py-3 text-center">
-                    {Math.round(conge.conge_total)}
-                  </td>
-                  <td className="px-4 py-3 text-center font-medium text-blue-600 hidden md:table-cell">
-                    {Math.round(conge.conge_compasatoire)}
+                  <td className="px-4 py-3 text-center">{conge.conge_total}</td>
+                  <td className="px-4 py-3 text-center font-medium hidden md:table-cell">
+                    {conge.conge_compensatoire}
                   </td>
                 </tr>
               ))

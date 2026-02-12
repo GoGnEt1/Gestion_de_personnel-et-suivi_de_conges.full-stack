@@ -55,9 +55,9 @@ const AdminLayout: React.FC = () => {
   const slugi = useMemo(
     () =>
       `${slugify(personnel?.nom || "")}-${slugify(
-        personnel?.prenoms || "user"
+        personnel?.prenoms || "user",
       )}`,
-    [personnel]
+    [personnel],
   );
 
   const menuItems = useMemo(
@@ -136,7 +136,7 @@ const AdminLayout: React.FC = () => {
         ],
       },
     ],
-    [t, personnel, slugi]
+    [t, personnel, slugi],
   );
   return (
     <div className="flex min-h-screen bg-gray-50">

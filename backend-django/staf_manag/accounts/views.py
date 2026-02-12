@@ -38,9 +38,11 @@ from django.utils import timezone
 from datetime import timedelta
 import uuid
 from rest_framework_simplejwt.tokens import RefreshToken
+from django.db import transaction
 
-def generate_code(length=5):
-    return ''.join(random.choices(string.ascii_letters + string.digits, k=length))
+def generate_code():
+    return "{:06d}".format(random.randint(0, 999999))
+    # return ''.join(random.choices(string.ascii_letters + string.digits, k=length))
 
 def mask_email(email):
     parts = email.split('@')
@@ -60,7 +62,6 @@ class LoginWithOtpView(APIView):
         matricule = request.data.get('matricule')
         password = request.data.get('password')
         device_id = request.data.get('device_id')  # optionnel
-        # remember_device = bool(request.data.get("remember_device", False))
 
         user = authenticate(request, matricule=matricule, password=password)
         if not user:
@@ -77,24 +78,18 @@ class LoginWithOtpView(APIView):
                 # Mettre à jour last_used
                 trusted.last_used = timezone.now()
                 trusted.save(update_fields=['last_used'])
-                # use TokenObtainPairSerializer to create tokens
                 token = CustomTokenObtainPairSerializer.get_token(user)
                 access = str(token.access_token)
                 refresh = str(token)
-                # refresh = RefreshToken.for_user(user)
-                # token = CustomTokenObtainPairSerializer.get_token(user)
-                # access = str(refresh.access_token)
-                # refresh = str(refresh)
                 return Response({
                     'access': access,
                     'refresh': refresh,
                     'must_change_password': user.double_auth,
                     'user':PersonnelSerializer(user.personnel).data if hasattr(user, 'personnel') and user.personnel else None
-                    # 'user':token
                 }, status=status.HTTP_200_OK)
 
-        # Otherwise generate OTP (reuse PasswordResetCode)
-        code = "{:06d}".format(random.randint(0, 999999))
+        # autrement générer OTP ( reuse PasswordResetCode)
+        code = generate_code()
         pr_code = PasswordResetCode.objects.create(user=user, code=code)
        # envoyer email (ton impl existante)
         masked = mask_email(user.personnel.email)
@@ -124,14 +119,13 @@ class LoginWithOtpView(APIView):
             "device_id_expected": "generate"  # si on veut que frontend renvoie device_id pour remember
         }, status=status.HTTP_200_OK)
 
-# fin
 class CustomTokenObtainPairView(TokenObtainPairView):
     serializer_class = CustomTokenObtainPairSerializer
 
 
 class RequestResetCodeView(APIView):
     serializer_class = PasswordResetRequestSerializer
-
+    @transaction.atomic
     def post(self, request):
         serializer = self.serializer_class(data=request.data)
         serializer.is_valid(raise_exception=True)
@@ -201,12 +195,12 @@ class RequestResetCodeView(APIView):
             "masked_email": masked_email,
             "matricule": user.matricule,
             "expire_at": expire_at_ms,
-            # tu peux aussi renvoyer expire_at_iso si tu préfères
             "expire_at_iso": expire_at_dt.isoformat(),
         }
         return Response(resp, status=status.HTTP_200_OK)
 
 class VerifyCodeView(APIView):
+    @transaction.atomic
     def post(self, request):
         serializer = CodeVerificationSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
@@ -230,7 +224,36 @@ class VerifyCodeView(APIView):
             latest_code.save()
             return Response({"error": "Code incorrect."}, status=400)
         
-        # OK : marquer comme utilisé
+
+        # si l'utilisateur veut "remember device", frontend peut envoyer un device_id supplémentaire
+        # on peut aussi créer un TrustedDevice ici si device_id fourni
+        device_id = request.data.get("device_id")
+        trust_device = request.data.get('trust_device') in [True, 'true', 'True', '1', 1]
+      
+        if trust_device and device_id:
+            # verifier si ce device_id existe déjà
+            existing_device = TrustedDevice.objects.filter(device_id=device_id).first()
+
+            if existing_device:
+                if existing_device.user == user:
+                    # si le device_id existe, on met à jour l'expiration
+                    existing_device.expires_at = timezone.now() + timezone.timedelta(days=30)
+                    existing_device.save(update_fields=['expires_at'])
+                else:
+                    return Response({
+                        "error": "Ce périphérique est déjà enregistré par un autre utilisateur.",
+                        "message": "Veuillez vous reconnecter et décocher la case de confiance ou utiliser un autre périphérique."
+                    }, status=status.HTTP_400_BAD_REQUEST)
+            else:
+                # si le device_id n'existe pas, on le créer
+                expires_at = timezone.now() + timezone.timedelta(days=30)
+                TrustedDevice.objects.create(
+                    user=user,
+                    device_id=device_id,
+                    expires_at=expires_at
+                )
+
+         # OK : marquer comme utilisé
         latest_code.is_used = True
         latest_code.save()
 
@@ -239,22 +262,6 @@ class VerifyCodeView(APIView):
         access = str(token.access_token)
         refresh_token = str(token)
 
-        # si l'utilisateur veut "remember device", frontend peut envoyer un device_id supplémentaire
-        # on peut aussi créer un TrustedDevice ici si device_id fourni
-        device_id = request.data.get("device_id")
-        trust_device = request.data.get('trust_device') in [True, 'true', 'True', '1', 1]
-       
-        if trust_device:
-            # si pas de device_id envoyé, generate one server side (mais on préfère que client l'envoie)
-            if not device_id:
-                device_id = str(uuid.uuid4())
-            expires_at = timezone.now() + timezone.timedelta(days=30)  # 30 jours
-            TrustedDevice.objects.update_or_create(
-                user=user,
-                device_id=device_id,
-                defaults={'expires_at': expires_at}
-            )
-        
         return Response({
             "message": "Code vérifié",
             "access": access,
@@ -287,8 +294,6 @@ class ResetPasswordView(APIView):
             "access": access,
             "refresh": refresh_token,
         }, status=status.HTTP_200_OK)
-
-
 
 class ChangePasswordView(APIView):
     permission_classes = [permissions.IsAuthenticated]

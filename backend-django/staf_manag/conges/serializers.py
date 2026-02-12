@@ -4,6 +4,7 @@ from personnel.models import Personnel
 from django.core.exceptions import ValidationError as DjangoValidationError
 from personnel.serializers import PersonnelSerializer
 from django.utils import timezone
+from staf_manag.utils.conges import to_decimal
 
 class RegleCongeSerializer(serializers.ModelSerializer):
     modifie_par = serializers.SerializerMethodField()
@@ -32,11 +33,10 @@ class RegleCongeSerializer(serializers.ModelSerializer):
 class DemandeCongeSerializer(serializers.ModelSerializer):
     personnel = PersonnelSerializer(read_only=True)
     conge = serializers.PrimaryKeyRelatedField(read_only=True)
-    # personnel = serializers.PrimaryKeyRelatedField(queryset=Personnel.objects.all())
     class Meta:
         model = DemandeConge
         fields = '__all__'
-        read_only_fields = ['annee','statut', 'periode','date_soumission', 'date_validation', 'date_annulation',  'annule']
+        read_only_fields = ['annee','statut', 'id','personnel', 'conge', 'date_validation', 'date_annulation',  'annule']
 
     def get_demandes(self, obj):
         last_demande = (
@@ -77,6 +77,31 @@ class DemandeCongeSerializer(serializers.ModelSerializer):
         # on instancie la demande sans la sauvegarder
         instance = DemandeConge(**data)
 
+        #  valider le type de demande
+        type_demande = data.get('type_demande', 'standard')
+        conge_demande = data.get('conge_demande', 0)
+        conge_total_dispo = (
+            to_decimal(conge.conge_restant_annee_n_1)
+            + to_decimal(conge.conge_restant_annee_n_2)
+            + sum(
+                to_decimal(v) for v in conge.conge_mensuel_restant.values()
+                if isinstance(v, (int, float)) or 0
+            )
+        )
+
+        if type_demande == 'standard':
+            if to_decimal(conge_demande) > to_decimal(conge_total_dispo):
+                raise serializers.ValidationError({ "conge_demande_non_valide": f"Solde de congé insuffisant. Disponible: {conge_total_dispo} jours." })
+
+        elif type_demande == 'exceptionnel':
+            if to_decimal(conge_demande) > to_decimal(conge.conge_exceptionnel):
+                raise serializers.ValidationError({ "conge_demande_non_valide": f"Solde de congé exceptionnel insuffisant. Disponible: {conge.conge_exceptionnel} jours." })
+         
+        elif type_demande == 'compensatoire':
+            reste = to_decimal(conge.conge_compensatoire)
+            if to_decimal(conge_demande) > reste:
+                raise serializers.ValidationError({ "conge_demande_non_valide": f"Solde de congé compensatoire insuffisant. Disponible: {conge.conge_compensatoire} jours." })
+            
         try:
             instance.full_clean()
         except DjangoValidationError as e:
@@ -91,8 +116,8 @@ class CongeSerializer(serializers.ModelSerializer):
         model = Conge
         fields = '__all__'
         read_only_fields = [
-            'annee', 'conge_restant_annee_n_1', 'conge_restant_annee_n_2', 'conge_restant_annee_courante',
-            'conge_total', 'date_maj',
+            'annee', 
+            'date_maj',
         ]
     
     def validate(self, data):
@@ -110,4 +135,3 @@ class CongeSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError(e.message_dict)
         return data
     
-

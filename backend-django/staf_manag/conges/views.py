@@ -8,6 +8,7 @@ from conges.serializers import CongeSerializer, DemandeCongeSerializer, RegleCon
 from django.utils import timezone
 from django.db import transaction
 from datetime import datetime
+# from personnel.views import IsAdminUser
 
 from django.conf import settings
 from django.core.mail import send_mail
@@ -15,8 +16,13 @@ from django.core.mail import send_mail
 from staf_manag.utils.email_utils import send_html_email
 from staf_manag.utils.conges import to_decimal, COL_MAP, detect_header_row, safe_value, normalize, get_col
 
+
+# from .pagination import StandardReesultatsSetPagination
+# from django_filters.rest_framework import DjangoFilterBackend
+
 from conges.models import Conge, DemandeConge, RegleConge
 from personnel.models import Personnel
+from accounts.models import CustomUser
 from staf_manag.forms import UploadFileForm
 from staf_manag.pandas_import import lire_docx, parse_date
 
@@ -66,14 +72,15 @@ class RegleCongeViewSet(viewsets.ModelViewSet):
     
     @action(detail=False, methods=['post'], permission_classes=[IsAdminUser, permissions.IsAuthenticated])
     def regle_form(self, request):
-        data = request.data
+        with transaction.atomic():
+            data = request.data
 
-        ancienne = RegleConge.objects.order_by('-date_maj').first()
-        regle= RegleConge.objects.create(
-            conge_initial_tech=data.get('conge_initial_tech') or ancienne.conge_initial_tech if ancienne else 72,
-            conge_initial_autres=data.get('conge_initial_autres') or ancienne.conge_initial_autres if ancienne else 45,
-            modifie_par=request.user,
-        )
+            ancienne = RegleConge.objects.order_by('-date_maj').first()
+            regle= RegleConge.objects.create(
+                conge_initial_tech=data.get('conge_initial_tech') or ancienne.conge_initial_tech if ancienne else 72,
+                conge_initial_autres=data.get('conge_initial_autres') or ancienne.conge_initial_autres if ancienne else 45,
+                modifie_par=request.user,
+            )
         return Response(RegleCongeSerializer(regle).data, status=status.HTTP_200_OK)
         
 class CongeViewSet(viewsets.ModelViewSet):
@@ -88,6 +95,12 @@ class CongeViewSet(viewsets.ModelViewSet):
         # si admin et un filtre personnel_id est passé -> filtrer par ce personnel
         if user.is_staff:
             personnel_id = (
+                self.request.query_params.get('personnel_id') 
+                or self.request.query_params.get('personnel')
+            )
+            if personnel_id:
+                qs = qs.filter(personnel__id=personnel_id)
+                prinpersonnel_id = (
                 self.request.query_params.get('personnel_id') 
                 or self.request.query_params.get('personnel')
             )
@@ -118,8 +131,6 @@ class CongeViewSet(viewsets.ModelViewSet):
         else:
             return Response({"error": "Veuillez fournir un fichier Excel."}, status=status.HTTP_400_BAD_REQUEST)
 
-        print("Colonnes normalisées détectées :", df.columns.tolist())
-
         logs = []
         annee = timezone.now().year
         for _, row in df.iterrows():
@@ -133,8 +144,6 @@ class CongeViewSet(viewsets.ModelViewSet):
             reste_n = get_col(row, COL_MAP["reste_n"])
             compensation = get_col(row, COL_MAP["compensation"])
             exceptionnel = get_col(row, COL_MAP["exceptionnel"])
-            print("MAT:", matricule)
-            print("N-2:", reste_n_2, "N-1:", reste_n_1, "N:", reste_n, "Compensation:", compensation, "Exceptionnel:", exceptionnel)
 
             try:
                 personnel = Personnel.objects.get(matricule=matricule)
@@ -151,8 +160,6 @@ class CongeViewSet(viewsets.ModelViewSet):
                 conge.conge_restant_annee_courante = to_decimal(reste_n)
                 conge.conge_compensatoire = to_decimal(compensation)
                 conge.conge_exceptionnel = (exceptionnel)
-
-                # print("Colonnes détectées :", list(df.columns))
 
                 conge.recalculer_total_conges(save=False)
 
@@ -195,10 +202,6 @@ class CongeViewSet(viewsets.ModelViewSet):
             conge.full_clean()
             conge.save()
 
-            # return Response(
-            #     {"message": "Congés mis à jour avec succès"},
-            #     status=200
-            # )
             return Response({"message": f"Congé de {matricule} pour l'annee {conge.annee} mis à jour avec success."}, status=status.HTTP_200_OK)
         except Personnel.DoesNotExist:
             return Response({"error": f"Matricule {matricule} introuvable."}, status=status.HTTP_400_BAD_REQUEST)
@@ -263,6 +266,8 @@ class DemandeCongeViewSet(viewsets.ModelViewSet):
                 return Response({"detail": "Demande annulée par l'utilisateur."}, status=status.HTTP_400_BAD_REQUEST)
             if demande.statut == 'valide':
                 return Response({"detail": "Congé deja validé."}, status=status.HTTP_400_BAD_REQUEST)
+            if demande.statut != 'en_attente':
+                return Response({"detail": "Vous ne pouvez valider que les demandes en attente."}, status=status.HTTP_400_BAD_REQUEST)
             if demande.is_locked():
                 return  Response({"detail": "Délai de modification expiré."}, status=status.HTTP_403_FORBIDDEN)
             
@@ -427,26 +432,21 @@ class DemandeCongeViewSet(viewsets.ModelViewSet):
             return Response({"detail": "Aucun conge associé à cet utilisateur."}, status=status.HTTP_400_BAD_REQUEST)
        
         serializer = self.get_serializer(data=request.data, context={'request': request})
-        try:
-            serializer.is_valid(raise_exception=True)
-            demande = serializer.save()
-            # demande = serializer.save(personnel=user.personnel, conge=conge)
-        except DjangoValidationError as e:
-            if hasattr(e, 'message_dict'):
-                return Response({"errors": e.message_dict}, status=status.HTTP_400_BAD_REQUEST)
-            return Response({"detail": e.messages}, status=status.HTTP_400_BAD_REQUEST)
-        except Exception as e:
-            return Response({"detail": str(e)}, status=status.HTTP_400_BAD_REQUEST)
-        
+        serializer.is_valid(raise_exception=True)
+        demande = serializer.save()
         # envoie une notificatons à l'admin par email
         date_debut = demande.periode.split(" - ")[0]
         date_retour = demande.periode.split(" - ")[1]
         lien = settings.DJANGO_API_URL
 
-
+        # recuperons le premier user admin qui a le même email que celui configurer dans settings settings.EMAIL_HOST_USER
         # envoie une notificatons à l'admin par email
-        admin_email = settings.EMAIL_HOST_USER
-        if request.user.is_authenticated:
+        admin_email = str(settings.EMAIL_HOST_USER).strip()
+        if admin_email:
+            personnel = Personnel.objects.filter(email=admin_email).first()
+            admin_user = CustomUser.objects.filter(personnel=personnel).first() if personnel else request.user
+
+        if admin_user.is_authenticated:
             lien_espace = lien + "dashboard/admin"
         else:
             lien_espace = lien + "login"
@@ -455,7 +455,7 @@ class DemandeCongeViewSet(viewsets.ModelViewSet):
             template="demande_conge.html",
             context={
                 "conge": demande,
-                "user": request.user,
+                "user": admin_user,
                 "year": timezone.now().year,
                 "lien_espace": lien_espace,
                 "date_retour": date_retour,
@@ -465,8 +465,6 @@ class DemandeCongeViewSet(viewsets.ModelViewSet):
         )
             
         return Response(serializer.data, status=status.HTTP_201_CREATED)
-        # return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
 
     @action(detail=False, methods=['get'], permission_classes=[permissions.IsAuthenticated])
     def mes_demandes(self, request):
@@ -489,4 +487,3 @@ class DemandeCongeViewSet(viewsets.ModelViewSet):
             return self.get_paginated_response(serializer.data)
         serializer = self.get_serializer(qs, many=True)
         return Response(serializer.data)
- 

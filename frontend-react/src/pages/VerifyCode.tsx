@@ -10,7 +10,11 @@ import { useAuth } from "../context/useAuth";
 const EXPIRATION_SECONDS = 150;
 const REDIRECTION_APRES_EXPIRATION_SECONDS = 60;
 
-function generateDeviceId() {
+function generateDeviceId(): string {
+  // Utilise la Crypto API si disponible
+  if (typeof crypto !== "undefined" && crypto.randomUUID) {
+    return crypto.randomUUID();
+  }
   // Utilise la Web Crypto API si disponible
   if (window.crypto && window.crypto.getRandomValues) {
     const buffer = new Uint8Array(16);
@@ -36,6 +40,8 @@ const mapBackendMessageToTranslationKey = (msg: string | null) => {
   if (lower.includes("trop de tentatives"))
     return "verifyCode.errorTooManyAttempts";
   if (lower.includes("code non trouvé")) return "verifyCode.errorNotFound";
+  if (lower.includes("périphérique") || lower.includes("device")) return null; // Géré séparément
+
   // si on a un message brut, on affiche celui-ci tel quel
   return null;
 };
@@ -64,10 +70,10 @@ const VerifyCode: React.FC = () => {
 
   const [countdown, setCountdown] = useState<number>(compteInitialCountdown);
   const [expire, setExpire] = useState<boolean>(
-    () => compteInitialCountdown() <= 0
+    () => compteInitialCountdown() <= 0,
   );
   const [redirectionSecond, setRedirectionSecond] = useState<number>(
-    REDIRECTION_APRES_EXPIRATION_SECONDS
+    REDIRECTION_APRES_EXPIRATION_SECONDS,
   );
   const matricule = localStorage.getItem("resetMatricule") || "";
 
@@ -185,7 +191,7 @@ const VerifyCode: React.FC = () => {
   /* gestion du device_id */
   const [rememberDevice, setRememberDevice] = useState<boolean>(false);
   const [deviceId, setDeviceId] = useState<string | null>(
-    localStorage.getItem("trustedDeviceId") || null
+    localStorage.getItem("trustedDeviceId") || null,
   );
 
   // générer device id local si l'utilisateur coche et qu'il n'y en a pas
@@ -246,36 +252,61 @@ const VerifyCode: React.FC = () => {
       localStorage.removeItem("resetMatricule");
       localStorage.removeItem("resetEmail");
       localStorage.removeItem("resetName");
-      localStorage.removeItem("deviceId");
-      localStorage.removeItem("access");
-      localStorage.removeItem("refresh");
+      // localStorage.removeItem("deviceId");
+      // localStorage.removeItem("access");
+      // localStorage.removeItem("refresh");
     } catch (err: unknown) {
-      // extraction du message backend et mapping vers clé i18n
-      let backendMsg: string | null = null;
+      let errorMessage: string = t("error.general");
+
       if (axios.isAxiosError(err)) {
         const resp = err?.response;
+
+        if (resp?.status === 409 || resp?.status === 400) {
+          // Erreur de device déjà enregistré
+          const errorData = resp.data;
+
+          if (
+            errorData.error &&
+            (errorData.error.includes("périphérique") ||
+              errorData.error.includes("device"))
+          ) {
+            // ✅ COMBINER error ET message
+            const fullMessage = errorData.message
+              ? `${errorData.error}\n\n${errorData.message}`
+              : errorData.error;
+
+            setError(fullMessage);
+            console.log("fullMessage :", fullMessage);
+
+            // Générer un nouveau device_id pour la prochaine tentative
+            // const newDeviceId = generateDeviceId();
+            // setDeviceId(newDeviceId);
+            // localStorage.removeItem("trustedDeviceId");
+            // localStorage.removeItem("trustedDeviceExpiry");
+
+            // Décocher automatiquement la case
+            setRememberDevice(false);
+
+            return;
+          }
+        }
+
+        // Autres erreurs
         if (resp?.data) {
-          backendMsg =
-            (resp.data.error as string) ||
-            (resp.data.detail as string) ||
-            (resp.data.message as string) ||
+          const backendMsg =
+            resp.data.error ||
+            resp.data.detail ||
+            resp.data.message ||
             (Array.isArray(resp.data.non_field_errors) &&
               resp.data.non_field_errors[0]) ||
             JSON.stringify(resp.data);
-        } else {
-          backendMsg = t("error.general");
+
+          const key = mapBackendMessageToTranslationKey(backendMsg);
+          errorMessage = key ? t(key) : backendMsg;
         }
-      } else {
-        backendMsg = t("error.general");
       }
 
-      const key = mapBackendMessageToTranslationKey(backendMsg);
-      if (key) {
-        setError(t(key));
-      } else {
-        // si on a un message brut, on affiche celui-ci tel quel
-        setError(backendMsg);
-      }
+      setError(errorMessage);
     }
   };
   // si expire, on affiche le panneau rouge d'expiration full-screen

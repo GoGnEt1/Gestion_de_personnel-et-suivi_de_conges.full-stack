@@ -1,0 +1,40 @@
+{% extends 'base.html' %}
+
+<!-- title -->
+{% block title %}Demande d'attestation de travail{% endblock %}
+
+<!-- content -->
+{% block content %}
+<!--  -->
+Le personnel
+<strong>{{demande.personnel.prenoms}} {{demande.personnel.nom}} </strong>a
+soumis une demande d'attestation de travail.<br />
+<strong>Nombre d'exemplaires :</strong> {{demande.nombre_copies}} <br />
+<strong>Langue du certificat de travail :</strong> {{langue_certificat}}
+
+<!--  -->
+{% endblock %}
+
+<!-- code -->
+{% block code %}
+<!--  -->
+<!--  -->
+{% endblock %}
+
+<!-- lien de verification -->
+{% block lien %}
+<a
+  href="{{lien_espace}}"
+  target="_blank"
+  rel="noopener noreferrer"
+  class="btn btn-secondary"
+  >Espace administrateur</a
+>
+{% endblock %}
+
+<!-- avertissement -->
+{% block avertissement %}
+<!--  -->
+Nous vous remercions de votre confiance.
+<!--  -->
+{% endblock %}

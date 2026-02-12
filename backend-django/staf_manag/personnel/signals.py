@@ -72,7 +72,7 @@ def _store_old_grade(sender, instance : Personnel, **kwargs):
         instance._old_grade = None
 
 """
-si la grade a changé après post_save (et que l'objet n'a pas été créé),
+si la grade est changé après post_save (et que l'objet n'a pas été créé),
 on met à jour le conge associé selon les règles metier
 """
 
@@ -124,53 +124,7 @@ def _update_conge_after_grade_change(sender, instance: Personnel, created, **kwa
         conge.save()
 
     # Conge.objects.filter(personnel=instance).update(conge_initial=Conge(personnel=instance).get_default_conge_initial())
-"""
-# mettre jour conge après une demande de conge validé
-@receiver(post_save, sender=DemandeConge)
-def update_conge_after_demande(sender, instance, created, **kwargs):
-    if instance.statut == 'valide':
-        conge = instance.conge
-        demande = to_decimal(instance.conge_demande or 0)
-        # calcul de prélèvement par ordre n-2 → n-1 → n
-        available_n2 = to_decimal(conge.conge_restant_annee_n_2)
-        if demande <= available_n2:
-            conge.conge_restant_annee_n_2 = (available_n2 - demande).quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)
-            demande = Decimal('0.00')
-        else:
-            demande -= available_n2
-            conge.conge_restant_annee_n_2 = Decimal('0.00')
 
-        available_n1 = to_decimal(conge.conge_restant_annee_n_1)
-        if demande > Decimal('0.00'):
-            if demande <= available_n1:
-                conge.conge_restant_annee_n_1 = (available_n1 - demande).quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)
-                demande = Decimal('0.00')
-            else:
-                demande -= available_n1
-                conge.conge_restant_annee_n_1 = Decimal('0.00')
-
-        # mensuels (plus anciens)
-        if demande > Decimal('0.00'):
-            today = timezone.now().date()
-            mois_courant = today.month
-            for m in range(1, mois_courant):
-                key =f'{m:02d}'
-                available = to_decimal(conge.conge_mensuel_restant.get(key, 0))
-                if available <= Decimal('0.00'):
-                    continue
-
-                debit = min(demande, available)
-                # conge.conge_mensuel_restant[key] -= max(0, available - debit)
-                conge.conge_mensuel_restant[key] = float((available - debit).quantize(Decimal('0.01'), rounding=ROUND_HALF_UP))
-                reste -= debit
-                conge.conge_restant_annee_courante = (to_decimal(conge.conge_restant_annee_courante) - debit).quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)
-
-                if demande <= Decimal('0.00'):
-                    break
-            
-        conge.recalculer_total_conges()
-
-"""
 # code pour appliquer la novelle regle de conge
 @receiver(post_save, sender=RegleConge)
 def update_conge_after_regle(sender, instance, created, **kwargs):
@@ -187,8 +141,9 @@ def update_conge_after_regle(sender, instance, created, **kwargs):
                 conge.conge_restant_annee_courante = preleve
             else:
                 conge.conge_restant_annee_courante = 0
+
+            conge.recalculer_acquisition_mensuelle(save=False)
             
-            conge.recalculer_total_conges()
             updates.append(conge)
             conge.save()
     if updates:
@@ -199,5 +154,4 @@ def update_conge_after_regle(sender, instance, created, **kwargs):
 def create_user_preferences(sender, instance, created, **kwargs):
     if created:
         UserPreferences.objects.get_or_create(user=instance)
-
 

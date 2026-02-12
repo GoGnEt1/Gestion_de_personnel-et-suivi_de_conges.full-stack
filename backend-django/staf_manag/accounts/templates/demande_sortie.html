@@ -1,0 +1,43 @@
+{% extends 'base.html' %}
+
+<!-- title -->
+{% block title %}Demande de sortie{% endblock %}
+
+<!-- content -->
+{% block content %}
+<!--  -->
+Le personnel
+<strong>{{demande.personnel.prenoms}} {{demande.personnel.nom}} </strong>a
+soumis une demande de sortie.<br />
+<strong>Date de sortie :</strong> {{date_sortie}} <br />
+<!-- date retour = conge.periode.split(" - ")[1] -->
+<strong>Heure de sortie :</strong> {{heure_sortie}} <br />
+<strong>Heure de retour :</strong> {{heure_retour}} <br />
+<strong>Motif :</strong> {{demande.motif}}
+
+<!--  -->
+{% endblock %}
+
+<!-- code -->
+{% block code %}
+<!--  -->
+<!--  -->
+{% endblock %}
+
+<!-- lien de verification -->
+{% block lien %}
+<a
+  href="{{lien_espace}}"
+  target="_blank"
+  rel="noopener noreferrer"
+  class="btn btn-secondary"
+  >Espace administrateur</a
+>
+{% endblock %}
+
+<!-- avertissement -->
+{% block avertissement %}
+<!--  -->
+Nous vous remercions de votre confiance.
+<!--  -->
+{% endblock %}

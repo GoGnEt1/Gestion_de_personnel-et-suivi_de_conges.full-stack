@@ -32,7 +32,7 @@ const ForgotPassword: React.FC = () => {
       } else if (data.expire_at_iso) {
         localStorage.setItem(
           "verifyExpireAt",
-          String(new Date(data.expire_at_iso).getTime())
+          String(new Date(data.expire_at_iso).getTime()),
         );
       } else {
         localStorage.setItem("verifyExpireAt", String(Date.now() + 150 * 1000));
@@ -43,7 +43,7 @@ const ForgotPassword: React.FC = () => {
       if (data.nom || data.prenoms)
         localStorage.setItem(
           "resetName",
-          `${data.nom || ""} ${data.prenoms || ""}`.trim()
+          `${data.nom || ""} ${data.prenoms || ""}`.trim(),
         );
 
       setTimeout(() => {
@@ -101,13 +101,9 @@ const ForgotPassword: React.FC = () => {
             )}
             <button
               type="submit"
-              //   disabled={loading}
               className="bg-blue-600 text-white py-2 border cursor-pointer rounded-md transition duration-500 ease-out w-full hover:bg-transparent hover:text-blue-600 hover:border-blue-600"
             >
-              {
-                //   loading ? t("forgotPassword.loading"):
-                t("forgotPassword.sendCode")
-              }
+              {t("forgotPassword.sendCode")}
             </button>
           </form>
         </div>

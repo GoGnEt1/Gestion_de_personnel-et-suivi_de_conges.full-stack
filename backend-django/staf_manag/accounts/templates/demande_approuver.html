@@ -1,0 +1,43 @@
+{% extends 'base.html' %}
+
+<!-- title -->
+{% block title %}Demande approuvéé{% endblock %}
+
+<!-- content -->
+{% block content %}
+<!--  -->
+Félicitations ! Votre demande {{type_demande}} a bien été
+<strong>approuvéé</strong>.
+<br />
+
+<strong
+  >Veuillez contacter l'administration pour retirer votre fiche de demande.
+  Merci!</strong
+>
+
+<!--  -->
+{% endblock %}
+
+<!-- code -->
+{% block code %}
+<!--  -->
+<!--  -->
+{% endblock %}
+
+<!-- lien de verification -->
+{% block lien %}
+<a
+  href="{{lien_espace}}"
+  target="_blank"
+  rel="noopener noreferrer"
+  class="btn btn-secondary"
+  >Mon espace</a
+>
+{% endblock %}
+
+<!-- avertissement -->
+{% block avertissement %}
+<!--  -->
+Nous vous remercions de votre confiance.
+<!--  -->
+{% endblock %}
